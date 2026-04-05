@@ -1,12 +1,17 @@
 import { useLeaderboard } from '@/hooks/use-leaderboard'
 import { Card, CardContent } from '@/components/ui/card'
-import { Trophy } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const RANK_STYLES: Record<number, string> = {
-  1: 'text-yellow-600 bg-yellow-50 border-yellow-200',
-  2: 'text-gray-500 bg-gray-50 border-gray-200',
-  3: 'text-amber-700 bg-amber-50 border-amber-200',
+  1: 'border-gold/50 bg-gold/10',
+  2: 'border-silver/40 bg-silver/5',
+  3: 'border-bronze/40 bg-bronze/5',
+}
+
+const RANK_BADGE: Record<number, string> = {
+  1: 'text-gold',
+  2: 'text-silver',
+  3: 'text-bronze',
 }
 
 export function LeaderboardPage() {
@@ -17,16 +22,21 @@ export function LeaderboardPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Trophy className="h-5 w-5" />
-        <h1 className="text-xl font-bold">Leaderboard</h1>
+    <div className="space-y-6">
+      {/* Hero header */}
+      <div className="text-center pt-4 pb-2">
+        <h1 className="text-3xl font-black tracking-tight text-primary">
+          Mats Games
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1 italic">
+          Mats drekkes ut
+        </p>
       </div>
 
       {entries.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground">
-            No points awarded yet. Check back later!
+            No points awarded yet. Let the games begin!
           </CardContent>
         </Card>
       ) : (
@@ -36,18 +46,23 @@ export function LeaderboardPage() {
               key={entry.id}
               className={cn(
                 'transition-all',
-                RANK_STYLES[entry.rank] ?? ''
+                RANK_STYLES[entry.rank] ?? 'border-border'
               )}
             >
               <CardContent className="flex items-center justify-between py-3 px-4">
                 <div className="flex items-center gap-3">
-                  <span className="text-lg font-bold w-8 text-center">
-                    {entry.rank}
+                  <span
+                    className={cn(
+                      'text-lg font-black w-8 text-center',
+                      RANK_BADGE[entry.rank] ?? 'text-muted-foreground'
+                    )}
+                  >
+                    {entry.rank === 1 ? '1st' : entry.rank === 2 ? '2nd' : entry.rank === 3 ? '3rd' : `${entry.rank}th`}
                   </span>
-                  <span className="font-medium">{entry.name}</span>
+                  <span className="font-semibold">{entry.name}</span>
                 </div>
                 <div className="text-right">
-                  <span className="font-bold">{entry.total_points}</span>
+                  <span className="font-bold text-primary">{entry.total_points}</span>
                   <span className="text-xs text-muted-foreground ml-1">MM</span>
                 </div>
               </CardContent>

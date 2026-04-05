@@ -19,10 +19,11 @@ export function Header() {
   ]
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4 max-w-lg">
-        <div className="flex h-14 items-center justify-between">
+        <div className="flex h-12 items-center justify-between">
           <nav className="flex items-center gap-1">
+            <Link to="/" className="font-black text-primary text-sm mr-2 tracking-tight">MG</Link>
             {navItems.map(({ to, label, icon: Icon }) => (
               <Link key={to} to={to}>
                 <Button

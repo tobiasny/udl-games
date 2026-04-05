@@ -7,6 +7,8 @@ import { LoginPage } from '@/pages/LoginPage'
 import { ActivitiesPage } from '@/pages/ActivitiesPage'
 import { ActivityDetailPage } from '@/pages/ActivityDetailPage'
 import { ContestantsPage } from '@/pages/ContestantsPage'
+import { RebusPage } from '@/pages/RebusPage'
+import { RebusAdminPage } from '@/pages/RebusAdminPage'
 
 export default function App() {
   const auth = useAuthProvider()
@@ -19,6 +21,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<LeaderboardPage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/rebus" element={<RebusPage />} />
             <Route
               path="/admin/activities"
               element={<AdminGuard><ActivitiesPage /></AdminGuard>}
@@ -30,6 +33,10 @@ export default function App() {
             <Route
               path="/admin/contestants"
               element={<AdminGuard><ContestantsPage /></AdminGuard>}
+            />
+            <Route
+              path="/admin/rebus"
+              element={<AdminGuard><RebusAdminPage /></AdminGuard>}
             />
           </Routes>
         </main>

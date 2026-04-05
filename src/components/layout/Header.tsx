@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
-import { Trophy, Users, Gamepad2, LogIn, LogOut } from 'lucide-react'
+import { Trophy, Users, Gamepad2, LogIn, LogOut, Map, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -10,10 +10,12 @@ export function Header() {
 
   const navItems = [
     { to: '/', label: 'Leaderboard', icon: Trophy },
+    { to: '/rebus', label: 'Rebus', icon: Map },
     ...(isAdmin
       ? [
           { to: '/admin/activities', label: 'Activities', icon: Gamepad2 },
           { to: '/admin/contestants', label: 'Players', icon: Users },
+          { to: '/admin/rebus', label: 'Rebus', icon: Settings },
         ]
       : []),
   ]

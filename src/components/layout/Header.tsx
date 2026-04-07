@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
-import { Trophy, Users, Gamepad2, LogIn, LogOut, Map, Settings } from 'lucide-react'
+import { Trophy, Users, Gamepad2, LogIn, LogOut, Settings, Eye, History, Beer } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -8,49 +8,86 @@ export function Header() {
   const { isAdmin, logout } = useAuth()
   const location = useLocation()
 
-  const navItems = [
-    { to: '/', label: 'Leaderboard', icon: Trophy },
-    { to: '/rebus', label: 'Rebus', icon: Map },
-    ...(isAdmin
-      ? [
-          { to: '/admin/activities', label: 'Activities', icon: Gamepad2 },
-          { to: '/admin/contestants', label: 'Players', icon: Users },
-          { to: '/admin/rebus', label: 'Rebus', icon: Settings },
-        ]
-      : []),
+  const publicNav = [
+    { to: '/', label: 'Resultater', icon: Trophy },
+    { to: '/activities', label: 'Aktiviteter', icon: History },
+  ]
+
+  const adminNav = [
+    { to: '/admin/activities', label: 'Admin', icon: Gamepad2 },
+    { to: '/admin/contestants', label: 'Deltakere', icon: Users },
+    { to: '/admin/rebus', label: 'Rebus', icon: Settings },
   ]
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto px-4 max-w-lg">
-        <div className="flex h-12 items-center justify-between">
-          <nav className="flex items-center gap-1">
-            <Link to="/" className="font-black text-primary text-sm mr-2 tracking-tight">MG</Link>
-            {navItems.map(({ to, label, icon: Icon }) => (
-              <Link key={to} to={to}>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    'gap-1.5',
-                    location.pathname === to && 'bg-accent'
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span className="hidden sm:inline">{label}</span>
+    <header className="sticky top-0 z-50 border-b border-primary/10 bg-background/70 backdrop-blur-xl">
+      <div className="container mx-auto px-4 max-w-2xl">
+        <div className="flex h-14 items-center justify-between">
+          <nav className="flex items-center gap-0.5">
+            <Link to="/" className="flex items-center gap-1.5 mr-3 hover:opacity-80 transition-opacity">
+              <Beer className="h-5 w-5 text-beer" style={{ filter: 'drop-shadow(0 0 6px oklch(0.78 0.17 75 / 0.6))' }} />
+              <span className="font-display text-xl text-primary tracking-widest text-glow">MG</span>
+            </Link>
+            {publicNav.map(({ to, label, icon: Icon }) => {
+              const active = location.pathname === to
+              return (
+                <Link key={to} to={to}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      'gap-1.5 relative',
+                      active && 'text-primary'
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span className="hidden sm:inline">{label}</span>
+                    {active && (
+                      <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-primary rounded-full" />
+                    )}
+                  </Button>
+                </Link>
+              )
+            })}
+            {isAdmin && adminNav.map(({ to, label, icon: Icon }) => {
+              const active = location.pathname === to
+              return (
+                <Link key={to} to={to}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      'gap-1.5 relative',
+                      active && 'text-primary'
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span className="hidden sm:inline">{label}</span>
+                    {active && (
+                      <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-primary rounded-full" />
+                    )}
+                  </Button>
+                </Link>
+              )
+            })}
+            {isAdmin && (
+              <Link to="/rebus/run" target="_blank">
+                <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-primary" title="Apne rebus-visning (ny fane)">
+                  <Eye className="h-4 w-4" />
+                  <span className="hidden sm:inline">Rebus-vis</span>
                 </Button>
               </Link>
-            ))}
+            )}
           </nav>
           <div>
             {isAdmin ? (
-              <Button variant="ghost" size="sm" onClick={logout} className="gap-1.5">
+              <Button variant="ghost" size="sm" onClick={logout} className="gap-1.5 text-muted-foreground hover:text-foreground">
                 <LogOut className="h-4 w-4" />
-                <span className="hidden sm:inline">Logout</span>
+                <span className="hidden sm:inline">Logg ut</span>
               </Button>
             ) : (
               <Link to="/login">
-                <Button variant="ghost" size="sm" className="gap-1.5">
+                <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-foreground">
                   <LogIn className="h-4 w-4" />
                   <span className="hidden sm:inline">Admin</span>
                 </Button>

@@ -1,5 +1,5 @@
 export type ActivityType = 'free_for_all' | '1v1' | '2v2' | '3v3' | '4v4'
-export type ActivityFormat = 'free_for_all' | 'round_robin' | 'double_elimination'
+export type ActivityFormat = 'free_for_all' | 'round_robin' | 'double_elimination' | 'team_battle'
 export type ActivityStatus = 'draft' | 'in_progress' | 'completed'
 export type MatchStatus = 'pending' | 'in_progress' | 'completed'
 export type BracketType = 'winners' | 'losers' | 'grand_final'
@@ -36,6 +36,10 @@ export interface Match {
   bracket_position: number | null
   source_match_winner: string | null
   source_match_loser: string | null
+  team1_source_match: string | null
+  team1_source_from: 'winner' | 'loser' | null
+  team2_source_match: string | null
+  team2_source_from: 'winner' | 'loser' | null
   status: MatchStatus
   winning_team: number | null
   created_at: string

@@ -1,11 +1,14 @@
-import { useLeaderboard } from '@/hooks/use-leaderboard'
+import { useState, useEffect } from 'react'
+import { useLeaderboard, type LeaderboardEntryWithDelta } from '@/hooks/use-leaderboard'
 import { Card, CardContent } from '@/components/ui/card'
+import { AnimatedNumber } from '@/components/AnimatedNumber'
 import { cn } from '@/lib/utils'
+import { Crown, Medal, Award, TrendingUp, TrendingDown, Beer } from 'lucide-react'
 
 const RANK_STYLES: Record<number, string> = {
-  1: 'border-gold/50 bg-gold/10',
-  2: 'border-silver/40 bg-silver/5',
-  3: 'border-bronze/40 bg-bronze/5',
+  1: 'neon-border-gold',
+  2: 'neon-border-silver',
+  3: 'neon-border-bronze',
 }
 
 const RANK_BADGE: Record<number, string> = {
@@ -14,62 +17,170 @@ const RANK_BADGE: Record<number, string> = {
   3: 'text-bronze',
 }
 
+const RANK_ICON: Record<number, typeof Crown> = {
+  1: Crown,
+  2: Medal,
+  3: Award,
+}
+
+function ordinal(n: number) {
+  if (n === 1) return '1.'
+  if (n === 2) return '2.'
+  if (n === 3) return '3.'
+  return `${n}.`
+}
+
 export function LeaderboardPage() {
   const { entries, loading } = useLeaderboard()
 
   if (loading) {
-    return <div className="text-center py-12 text-muted-foreground">Loading...</div>
+    return <div className="text-center py-12 text-muted-foreground">Laster...</div>
   }
 
   return (
     <div className="space-y-6">
       {/* Hero header */}
-      <div className="text-center pt-4 pb-2">
-        <h1 className="text-3xl font-black tracking-tight text-primary">
-          Mats Games
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1 italic">
-          Mats drekkes ut
-        </p>
+      <div className="text-center pt-6 pb-4 animate-fade-up beer-foam-top">
+        <div className="flex items-center justify-center gap-4">
+          <Beer className="h-8 w-8 text-beer -scale-x-100" style={{ filter: 'drop-shadow(0 0 10px oklch(0.78 0.17 75 / 0.6))' }} />
+          <h1 className="font-display text-5xl text-primary tracking-wider text-glow">
+            Mats Games
+          </h1>
+          <Beer className="h-8 w-8 text-beer" style={{ filter: 'drop-shadow(0 0 10px oklch(0.78 0.17 75 / 0.6))' }} />
+        </div>
+        <div className="flex items-center justify-center gap-3 mt-2">
+          <div className="h-px w-12 bg-gradient-to-r from-transparent to-beer/50" />
+          <p className="text-sm text-muted-foreground italic tracking-wide">
+            Mats drekkes ut
+          </p>
+          <div className="h-px w-12 bg-gradient-to-l from-transparent to-beer/50" />
+        </div>
       </div>
 
       {entries.length === 0 ? (
-        <Card>
+        <Card className="animate-fade-up">
           <CardContent className="py-8 text-center text-muted-foreground">
-            No points awarded yet. Let the games begin!
+            Ingen poeng delt ut enna. La lekene begynne!
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-2">
-          {entries.map((entry) => (
-            <Card
-              key={entry.id}
-              className={cn(
-                'transition-all',
-                RANK_STYLES[entry.rank] ?? 'border-border'
-              )}
-            >
-              <CardContent className="flex items-center justify-between py-3 px-4">
-                <div className="flex items-center gap-3">
-                  <span
-                    className={cn(
-                      'text-lg font-black w-8 text-center',
-                      RANK_BADGE[entry.rank] ?? 'text-muted-foreground'
-                    )}
-                  >
-                    {entry.rank === 1 ? '1st' : entry.rank === 2 ? '2nd' : entry.rank === 3 ? '3rd' : `${entry.rank}th`}
-                  </span>
-                  <span className="font-semibold">{entry.name}</span>
-                </div>
-                <div className="text-right">
-                  <span className="font-bold text-primary">{entry.total_points}</span>
-                  <span className="text-xs text-muted-foreground ml-1">MM</span>
-                </div>
-              </CardContent>
-            </Card>
+          {entries.map((entry, i) => (
+            <LeaderboardRow key={entry.id} entry={entry} index={i} />
           ))}
         </div>
       )}
     </div>
+  )
+}
+
+function LeaderboardRow({ entry, index }: { entry: LeaderboardEntryWithDelta; index: number }) {
+  const RankIcon = RANK_ICON[entry.rank]
+  const [showDelta, setShowDelta] = useState(false)
+  const [showRankChange, setShowRankChange] = useState(false)
+
+  // Flash point delta when it changes
+  useEffect(() => {
+    if (entry.pointsDelta !== 0) {
+      setShowDelta(true)
+      const timer = setTimeout(() => setShowDelta(false), 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [entry.pointsDelta, entry.total_points])
+
+  // Flash rank change
+  useEffect(() => {
+    if (entry.rankDelta !== 0) {
+      setShowRankChange(true)
+      const timer = setTimeout(() => setShowRankChange(false), 4000)
+      return () => clearTimeout(timer)
+    }
+  }, [entry.rankDelta, entry.rank])
+
+  return (
+    <Card
+      className={cn(
+        'transition-all hover:scale-[1.01] animate-fade-up',
+        RANK_STYLES[entry.rank] ?? 'border-border',
+        entry.pointsDelta > 0 && showDelta && 'ring-1 ring-primary/40'
+      )}
+      style={{ animationDelay: `${index * 60}ms` }}
+    >
+      <CardContent className="flex items-center justify-between py-3.5 px-4">
+        <div className="flex items-center gap-3">
+          <div className={cn(
+            'w-9 h-9 rounded-lg flex items-center justify-center text-sm font-display tracking-wider relative',
+            entry.rank <= 3
+              ? `${RANK_BADGE[entry.rank]} bg-current/10`
+              : 'text-muted-foreground bg-secondary'
+          )}>
+            {RankIcon ? (
+              <RankIcon className="h-5 w-5" />
+            ) : (
+              <span className="font-display text-lg">{entry.rank}</span>
+            )}
+            {/* Rank change indicator */}
+            {showRankChange && entry.rankDelta !== 0 && (
+              <span className={cn(
+                'absolute -top-1.5 -right-1.5 flex items-center text-[10px] font-bold rounded-full px-1',
+                entry.rankDelta > 0
+                  ? 'text-green-400 bg-green-400/10'
+                  : 'text-red-400 bg-red-400/10'
+              )}>
+                {entry.rankDelta > 0 ? (
+                  <TrendingUp className="h-3 w-3" />
+                ) : (
+                  <TrendingDown className="h-3 w-3" />
+                )}
+              </span>
+            )}
+          </div>
+          {entry.avatar_url ? (
+            <img
+              src={entry.avatar_url}
+              alt={entry.name}
+              className="w-10 h-10 rounded-full object-cover border-2 border-border"
+            />
+          ) : (
+            <div className={cn(
+              'w-10 h-10 rounded-full flex items-center justify-center font-display text-lg tracking-wider border-2 border-border',
+              entry.rank <= 3 ? 'bg-primary/10 text-primary' : 'bg-secondary text-muted-foreground'
+            )}>
+              {entry.name.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <div>
+            <span className="font-semibold">{entry.name}</span>
+            <span className={cn(
+              'block text-xs',
+              RANK_BADGE[entry.rank] ?? 'text-muted-foreground'
+            )}>
+              {ordinal(entry.rank)} plass
+            </span>
+          </div>
+        </div>
+        <div className="text-right flex items-center gap-2">
+          {/* Point delta flash */}
+          {showDelta && entry.pointsDelta !== 0 && (
+            <span className={cn(
+              'text-sm font-bold animate-fade-up',
+              entry.pointsDelta > 0 ? 'text-green-400' : 'text-red-400'
+            )}>
+              {entry.pointsDelta > 0 ? '+' : ''}{entry.pointsDelta}
+            </span>
+          )}
+          <div className="flex items-baseline gap-1.5">
+            <AnimatedNumber
+              value={entry.total_points}
+              className="font-display text-2xl tracking-wider text-primary"
+            />
+            <span className="inline-flex items-center gap-0.5 text-xs text-muted-foreground font-medium">
+              MM
+              <Beer className="h-3 w-3 text-beer" />
+            </span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

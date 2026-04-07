@@ -1,6 +1,6 @@
 import { Routes, Route } from 'react-router-dom'
 import { AuthContext, useAuthProvider } from '@/hooks/use-auth'
-import { Header } from '@/components/layout/Header'
+import { MainLayout } from '@/components/layout/MainLayout'
 import { AdminGuard } from '@/components/layout/AdminGuard'
 import { LeaderboardPage } from '@/pages/LeaderboardPage'
 import { LoginPage } from '@/pages/LoginPage'
@@ -9,19 +9,23 @@ import { ActivityDetailPage } from '@/pages/ActivityDetailPage'
 import { ContestantsPage } from '@/pages/ContestantsPage'
 import { RebusPage } from '@/pages/RebusPage'
 import { RebusAdminPage } from '@/pages/RebusAdminPage'
+import { ActivityHistoryPage } from '@/pages/ActivityHistoryPage'
 
 export default function App() {
   const auth = useAuthProvider()
 
   return (
     <AuthContext.Provider value={auth}>
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto px-4 py-6 max-w-lg">
-          <Routes>
+      <div className="min-h-screen bg-background bg-grid relative">
+        <Routes>
+          {/* Hidden full-screen rebus view — no header, no menu */}
+          <Route path="/rebus/run" element={<RebusPage />} />
+
+          {/* Main app with header */}
+          <Route element={<MainLayout />}>
             <Route path="/" element={<LeaderboardPage />} />
+            <Route path="/activities" element={<ActivityHistoryPage />} />
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/rebus" element={<RebusPage />} />
             <Route
               path="/admin/activities"
               element={<AdminGuard><ActivitiesPage /></AdminGuard>}
@@ -38,8 +42,8 @@ export default function App() {
               path="/admin/rebus"
               element={<AdminGuard><RebusAdminPage /></AdminGuard>}
             />
-          </Routes>
-        </main>
+          </Route>
+        </Routes>
       </div>
     </AuthContext.Provider>
   )

@@ -40,6 +40,16 @@ export function useContestants() {
     await fetchContestants()
   }
 
+  const updateAvatar = async (id: string, avatarUrl: string) => {
+    const { error } = await supabase.rpc('update_contestant_avatar', {
+      token_input: sessionToken,
+      contestant_id_input: id,
+      avatar_url_input: avatarUrl || null,
+    })
+    if (error) throw error
+    await fetchContestants()
+  }
+
   const deleteContestant = async (id: string) => {
     const { error } = await supabase.rpc('delete_contestant', {
       token_input: sessionToken,
@@ -49,5 +59,5 @@ export function useContestants() {
     await fetchContestants()
   }
 
-  return { contestants, loading, addContestant, updateContestant, deleteContestant, refetch: fetchContestants }
+  return { contestants, loading, addContestant, updateContestant, updateAvatar, deleteContestant, refetch: fetchContestants }
 }

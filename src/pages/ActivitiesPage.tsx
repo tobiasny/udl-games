@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useActivities } from '@/hooks/use-activities'
 import { useContestants } from '@/hooks/use-contestants'
@@ -6,22 +6,39 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Gamepad2, Plus, ChevronRight } from 'lucide-react'
-import { VALID_FORMATS, ACTIVITY_TYPE_LABELS, ACTIVITY_FORMAT_LABELS } from '@/lib/constants'
+import { Gamepad2, Plus, ChevronRight, Trash2 } from 'lucide-react'
+import {
+  VALID_FORMATS,
+  ACTIVITY_TYPE_LABELS,
+  ACTIVITY_FORMAT_LABELS,
+  STATUS_LABELS,
+  TEAM_SIZES,
+} from '@/lib/constants'
+import { countAllRoundRobinMatches } from '@/lib/algorithms/round-robin'
 import type { ActivityType, ActivityFormat } from '@/lib/types'
 
 export function ActivitiesPage() {
-  const { activities, loading, addActivity } = useActivities()
+  const { activities, loading, addActivity, deleteActivity } = useActivities()
   const { contestants } = useContestants()
   const [showForm, setShowForm] = useState(false)
   const [name, setName] = useState('')
   const [type, setType] = useState<ActivityType>('free_for_all')
   const [format, setFormat] = useState<ActivityFormat>('free_for_all')
   const [selectedContestants, setSelectedContestants] = useState<string[]>([])
-  const [numRounds, setNumRounds] = useState(1)
+  // Empty string means "use the default" (alle for round_robin, 1 for team_battle).
+  const [roundCountInput, setRoundCountInput] = useState('')
   const [error, setError] = useState('')
 
   const availableFormats = VALID_FORMATS[type]
+
+  // For round_robin: show how many matches the algorithm would emit if we
+  // didn't cap it. Recomputed whenever the roster size or team size changes.
+  const allRoundRobinCount = useMemo(() => {
+    if (format !== 'round_robin') return 0
+    return countAllRoundRobinMatches(selectedContestants.length, TEAM_SIZES[type])
+  }, [format, type, selectedContestants.length])
+
+  const showRoundCount = format === 'round_robin' || format === 'team_battle'
 
   function handleTypeChange(newType: ActivityType) {
     setType(newType)
@@ -31,18 +48,37 @@ export function ActivitiesPage() {
     }
   }
 
+  // Resolve the user's round-count input into the integer we actually persist
+  // on the activity. For round_robin a blank field means "alle". For
+  // team_battle a blank or invalid value falls back to 1. For other formats
+  // num_rounds is unused, so we just keep it at 1.
+  function resolveNumRounds(): number {
+    const parsed = parseInt(roundCountInput, 10)
+    if (format === 'round_robin') {
+      if (!roundCountInput.trim() || isNaN(parsed) || parsed <= 0) {
+        return allRoundRobinCount || 1
+      }
+      return Math.min(parsed, allRoundRobinCount || parsed)
+    }
+    if (format === 'team_battle') {
+      if (!roundCountInput.trim() || isNaN(parsed) || parsed <= 0) return 1
+      return parsed
+    }
+    return 1
+  }
+
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
     if (!name.trim() || selectedContestants.length === 0) return
     setError('')
     try {
-      await addActivity(name.trim(), type, format, selectedContestants, numRounds)
+      await addActivity(name.trim(), type, format, selectedContestants, resolveNumRounds())
       setName('')
       setShowForm(false)
       setSelectedContestants([])
-      setNumRounds(1)
+      setRoundCountInput('')
     } catch {
-      setError('Failed to create activity')
+      setError('Kunne ikke opprette aktivitet')
     }
   }
 
@@ -52,18 +88,37 @@ export function ActivitiesPage() {
     )
   }
 
-  if (loading) return <div className="text-center py-12 text-muted-foreground">Loading...</div>
+  function toggleAllContestants() {
+    if (selectedContestants.length === contestants.length) {
+      setSelectedContestants([])
+    } else {
+      setSelectedContestants(contestants.map((c) => c.id))
+    }
+  }
+
+  async function handleDelete(e: React.MouseEvent, id: string, name: string) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!window.confirm(`Slette "${name}"? Alle kamper og poeng for denne aktiviteten forsvinner.`)) return
+    try {
+      await deleteActivity(id)
+    } catch {
+      setError('Kunne ikke slette aktivitet')
+    }
+  }
+
+  if (loading) return <div className="text-center py-12 text-muted-foreground">Laster...</div>
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Gamepad2 className="h-5 w-5" />
-          <h1 className="text-xl font-bold">Activities</h1>
+          <h1 className="text-xl font-display tracking-wider">Aktiviteter</h1>
         </div>
         <Button size="sm" onClick={() => setShowForm(!showForm)}>
           <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline ml-1">Add</span>
+          <span className="hidden sm:inline ml-1">Legg til</span>
         </Button>
       </div>
 
@@ -72,7 +127,7 @@ export function ActivitiesPage() {
           <CardContent className="pt-4 space-y-3">
             <form onSubmit={handleAdd} className="space-y-3">
               <Input
-                placeholder="Activity name"
+                placeholder="Aktivitetsnavn"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 autoFocus
@@ -112,23 +167,23 @@ export function ActivitiesPage() {
                 </div>
               </div>
 
-              {(format === 'free_for_all') && (
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Rounds</label>
-                  <Input
-                    type="number"
-                    min={1}
-                    value={numRounds}
-                    onChange={(e) => setNumRounds(parseInt(e.target.value) || 1)}
-                    className="w-20"
-                  />
-                </div>
-              )}
-
               <div>
-                <label className="text-sm font-medium mb-1 block">
-                  Contestants ({selectedContestants.length} selected)
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-sm font-medium">
+                    Deltakere ({selectedContestants.length} valgt)
+                  </label>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-xs"
+                    onClick={toggleAllContestants}
+                  >
+                    {selectedContestants.length === contestants.length && contestants.length > 0
+                      ? 'Fjern alle'
+                      : 'Velg alle'}
+                  </Button>
+                </div>
                 <div className="flex flex-wrap gap-1">
                   {contestants.map((c) => (
                     <Button
@@ -144,12 +199,39 @@ export function ActivitiesPage() {
                 </div>
               </div>
 
+              {showRoundCount && (
+                <div>
+                  <label className="text-sm font-medium mb-1 block">
+                    {format === 'round_robin' ? 'Maks kamper' : 'Antall omganger'}
+                  </label>
+                  <Input
+                    type="number"
+                    min={1}
+                    className="w-28"
+                    placeholder={
+                      format === 'round_robin'
+                        ? allRoundRobinCount > 0
+                          ? `${allRoundRobinCount} (alle)`
+                          : 'Alle'
+                        : '1'
+                    }
+                    value={roundCountInput}
+                    onChange={(e) => setRoundCountInput(e.target.value)}
+                  />
+                  {format === 'team_battle' && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Spillerne deles tilfeldig i to lag som spiller mot hverandre.
+                    </p>
+                  )}
+                </div>
+              )}
+
               {error && <p className="text-sm text-destructive">{error}</p>}
 
               <div className="flex gap-2">
-                <Button type="submit" size="sm">Create</Button>
+                <Button type="submit" size="sm">Opprett</Button>
                 <Button type="button" size="sm" variant="outline" onClick={() => setShowForm(false)}>
-                  Cancel
+                  Avbryt
                 </Button>
               </div>
             </form>
@@ -175,11 +257,22 @@ export function ActivitiesPage() {
                       variant={a.status === 'completed' ? 'default' : 'secondary'}
                       className="text-xs"
                     >
-                      {a.status}
+                      {STATUS_LABELS[a.status] ?? a.status}
                     </Badge>
                   </div>
                 </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                <div className="flex items-center gap-1">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                    onClick={(e) => handleDelete(e, a.id, a.name)}
+                    aria-label="Slett aktivitet"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </div>
               </CardContent>
             </Card>
           </Link>
@@ -187,7 +280,7 @@ export function ActivitiesPage() {
         {activities.length === 0 && (
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground">
-              No activities yet. Create one above!
+              Ingen aktiviteter enna. Opprett en ovenfor!
             </CardContent>
           </Card>
         )}

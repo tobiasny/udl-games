@@ -10,15 +10,28 @@ export function useMatches(activityId: string) {
   const { sessionToken } = useAuth()
 
   const fetchMatches = useCallback(async () => {
-    const [matchRes, playerRes] = await Promise.all([
-      supabase.from('matches').select('*').eq('activity_id', activityId).order('round').order('bracket_round').order('bracket_position'),
-      supabase.from('match_players').select('*').in(
-        'match_id',
-        (await supabase.from('matches').select('id').eq('activity_id', activityId)).data?.map(m => m.id) ?? []
-      ),
-    ])
-    if (!matchRes.error && matchRes.data) setMatches(matchRes.data)
-    if (!playerRes.error && playerRes.data) setMatchPlayers(playerRes.data)
+    // Single round trip: fetch matches with their players nested under each
+    // row, then split into the two flat state arrays the rest of the app
+    // already expects.
+    const { data, error } = await supabase
+      .from('matches')
+      .select('*, match_players(*)')
+      .eq('activity_id', activityId)
+      .order('round')
+      .order('bracket_round')
+      .order('bracket_position')
+
+    if (!error && data) {
+      const flatMatches: Match[] = []
+      const flatPlayers: MatchPlayer[] = []
+      for (const row of data as (Match & { match_players: MatchPlayer[] })[]) {
+        const { match_players, ...match } = row
+        flatMatches.push(match)
+        flatPlayers.push(...match_players)
+      }
+      setMatches(flatMatches)
+      setMatchPlayers(flatPlayers)
+    }
     setLoading(false)
   }, [activityId])
 

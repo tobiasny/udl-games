@@ -23,11 +23,13 @@ export function useAuth() {
 
 export function useAuthProvider() {
   const [isAdmin, setIsAdmin] = useState(false)
+  const [sessionToken, setSessionToken] = useState<string | null>(() => getSessionToken())
   const [loading, setLoading] = useState(true)
 
   const checkAuth = useCallback(async () => {
     const valid = await isAuthenticated()
     setIsAdmin(valid)
+    setSessionToken(getSessionToken())
     setLoading(false)
   }, [])
 
@@ -37,13 +39,17 @@ export function useAuthProvider() {
 
   const login = useCallback(async (password: string) => {
     const success = await authLogin(password)
-    if (success) setIsAdmin(true)
+    if (success) {
+      setIsAdmin(true)
+      setSessionToken(getSessionToken())
+    }
     return success
   }, [])
 
   const logout = useCallback(() => {
     authLogout()
     setIsAdmin(false)
+    setSessionToken(null)
   }, [])
 
   return {
@@ -51,6 +57,6 @@ export function useAuthProvider() {
     loading,
     login,
     logout,
-    sessionToken: getSessionToken(),
+    sessionToken,
   }
 }

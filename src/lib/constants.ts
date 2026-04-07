@@ -1,4 +1,20 @@
-import type { ActivityType, ActivityFormat } from './types'
+import type { ActivityType, ActivityFormat, ActivityStatus } from './types'
+
+// Number of players per team for each activity type. free_for_all has no
+// "team" concept, so 0.
+export const TEAM_SIZES: Record<ActivityType, number> = {
+  free_for_all: 0,
+  '1v1': 1,
+  '2v2': 2,
+  '3v3': 3,
+  '4v4': 4,
+}
+
+export const STATUS_LABELS: Record<ActivityStatus, string> = {
+  draft: 'Utkast',
+  in_progress: 'Pagar',
+  completed: 'Fullfort',
+}
 
 // Default point suggestions for free-for-all (8 players)
 // Tighter spread with small top bonus
@@ -30,7 +46,7 @@ export const VALID_FORMATS: Record<ActivityType, ActivityFormat[]> = {
   '1v1': ['round_robin', 'double_elimination'],
   '2v2': ['round_robin', 'double_elimination'],
   '3v3': ['round_robin', 'double_elimination'],
-  '4v4': ['free_for_all'],
+  '4v4': ['team_battle'],
 }
 
 export const ACTIVITY_TYPE_LABELS: Record<ActivityType, string> = {
@@ -45,4 +61,5 @@ export const ACTIVITY_FORMAT_LABELS: Record<ActivityFormat, string> = {
   free_for_all: 'Free for All',
   round_robin: 'Round Robin',
   double_elimination: 'Double Elimination',
+  team_battle: 'Lagkamp',
 }

@@ -1,43 +1,68 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --radius: 0.625rem;
-  --color-background: oklch(0.145 0 0);
-  --color-foreground: oklch(0.925 0 0);
-  --color-card: oklch(0.205 0 0);
-  --color-card-foreground: oklch(0.925 0 0);
-  --color-popover: oklch(0.205 0 0);
-  --color-popover-foreground: oklch(0.925 0 0);
-  --color-primary: oklch(0.75 0.18 60);
-  --color-primary-foreground: oklch(0.145 0 0);
-  --color-secondary: oklch(0.25 0 0);
-  --color-secondary-foreground: oklch(0.9 0 0);
-  --color-muted: oklch(0.25 0 0);
-  --color-muted-foreground: oklch(0.556 0 0);
-  --color-accent: oklch(0.25 0.02 60);
-  --color-accent-foreground: oklch(0.925 0 0);
-  --color-destructive: oklch(0.577 0.245 27.325);
-  --color-destructive-foreground: oklch(0.577 0.245 27.325);
-  --color-border: oklch(0.3 0 0);
-  --color-input: oklch(0.3 0 0);
-  --color-ring: oklch(0.75 0.18 60);
-  --color-chart-1: oklch(0.75 0.18 60);
-  --color-chart-2: oklch(0.6 0.118 184.704);
-  --color-chart-3: oklch(0.398 0.07 227.392);
-  --color-chart-4: oklch(0.828 0.189 84.429);
-  --color-chart-5: oklch(0.769 0.188 70.08);
-  --color-sidebar: oklch(0.17 0 0);
-  --color-sidebar-foreground: oklch(0.925 0 0);
-  --color-sidebar-primary: oklch(0.75 0.18 60);
-  --color-sidebar-primary-foreground: oklch(0.145 0 0);
-  --color-sidebar-accent: oklch(0.25 0 0);
-  --color-sidebar-accent-foreground: oklch(0.925 0 0);
-  --color-sidebar-border: oklch(0.3 0 0);
-  --color-sidebar-ring: oklch(0.75 0.18 60);
-  --color-gold: oklch(0.82 0.17 80);
-  --color-silver: oklch(0.7 0.01 250);
-  --color-bronze: oklch(0.65 0.12 55);
+  --font-sans: "Exo 2", system-ui, -apple-system, sans-serif;
+  --font-display: "Orbitron", "Exo 2", sans-serif;
+  --radius: 0.5rem;
+
+  /* Deep blue-black void */
+  --color-background: oklch(0.09 0.025 260);
+  --color-foreground: oklch(0.92 0.02 220);
+
+  /* Cards: translucent styrene panels */
+  --color-card: oklch(0.14 0.025 255);
+  --color-card-foreground: oklch(0.92 0.02 220);
+
+  --color-popover: oklch(0.14 0.025 255);
+  --color-popover-foreground: oklch(0.92 0.02 220);
+
+  /* Electric cyan primary */
+  --color-primary: oklch(0.82 0.16 195);
+  --color-primary-foreground: oklch(0.1 0.03 255);
+
+  --color-secondary: oklch(0.18 0.02 260);
+  --color-secondary-foreground: oklch(0.82 0.03 220);
+
+  --color-muted: oklch(0.18 0.02 260);
+  --color-muted-foreground: oklch(0.52 0.03 240);
+
+  --color-accent: oklch(0.18 0.04 280);
+  --color-accent-foreground: oklch(0.92 0.02 220);
+
+  --color-destructive: oklch(0.65 0.25 15);
+  --color-destructive-foreground: oklch(0.65 0.25 15);
+
+  --color-border: oklch(0.24 0.03 255);
+  --color-input: oklch(0.24 0.03 255);
+  --color-ring: oklch(0.82 0.16 195);
+
+  --color-chart-1: oklch(0.82 0.16 195);
+  --color-chart-2: oklch(0.7 0.18 300);
+  --color-chart-3: oklch(0.65 0.2 330);
+  --color-chart-4: oklch(0.75 0.15 160);
+  --color-chart-5: oklch(0.8 0.12 80);
+
+  --color-sidebar: oklch(0.1 0.025 260);
+  --color-sidebar-foreground: oklch(0.92 0.02 220);
+  --color-sidebar-primary: oklch(0.82 0.16 195);
+  --color-sidebar-primary-foreground: oklch(0.1 0.03 255);
+  --color-sidebar-accent: oklch(0.18 0.02 260);
+  --color-sidebar-accent-foreground: oklch(0.92 0.02 220);
+  --color-sidebar-border: oklch(0.24 0.03 255);
+  --color-sidebar-ring: oklch(0.82 0.16 195);
+
+  /* Medal colors — neon-tinted */
+  --color-gold: oklch(0.85 0.18 85);
+  --color-silver: oklch(0.78 0.04 240);
+  --color-bronze: oklch(0.7 0.12 50);
+
+  /* Neon accent for highlights */
+  --color-neon: oklch(0.75 0.2 310);
+
+  /* Beer accents — warm amber + cream foam, used for bachelor-party theming */
+  --color-beer: oklch(0.78 0.17 75);
+  --color-beer-deep: oklch(0.62 0.18 60);
+  --color-foam: oklch(0.96 0.02 90);
 }
 
 @layer base {
@@ -47,5 +72,258 @@
   body {
     @apply bg-background text-foreground;
     margin: 0;
+    font-feature-settings: "ss01", "ss02", "cv01";
   }
+}
+
+/* Display font */
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ── Animations ── */
+
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 12px oklch(0.82 0.16 195 / 0.2), inset 0 0 12px oklch(0.82 0.16 195 / 0.03); }
+  50% { box-shadow: 0 0 28px oklch(0.82 0.16 195 / 0.35), inset 0 0 20px oklch(0.82 0.16 195 / 0.06); }
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+@keyframes glitch {
+  0%, 100% { clip-path: inset(0 0 0 0); }
+  20% { clip-path: inset(20% 0 60% 0); }
+  40% { clip-path: inset(60% 0 10% 0); }
+  60% { clip-path: inset(40% 0 40% 0); }
+  80% { clip-path: inset(10% 0 70% 0); }
+}
+
+/* Rising CO2 bubbles for the background. Three layers at different speeds
+   give it a subtle parallax feel. The bubbles are amber-tinted dots that
+   drift upward and fade out. */
+@keyframes bubbleRise {
+  0% {
+    transform: translateY(110vh) scale(0.6);
+    opacity: 0;
+  }
+  10% { opacity: 0.5; }
+  90% { opacity: 0.5; }
+  100% {
+    transform: translateY(-10vh) scale(1.1);
+    opacity: 0;
+  }
+}
+
+@keyframes foamShimmer {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.85; }
+}
+
+.animate-fade-up {
+  animation: fadeSlideUp 0.4s ease-out both;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out both;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2.5s ease-in-out infinite;
+}
+
+/* ── Glassmorphic panels ── */
+
+.glass-panel {
+  background: oklch(0.14 0.025 255 / 0.6);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  border: 1px solid oklch(0.82 0.16 195 / 0.1);
+}
+
+.glass-panel-bright {
+  background: oklch(0.16 0.03 255 / 0.7);
+  backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  border: 1px solid oklch(0.82 0.16 195 / 0.15);
+}
+
+/* ── Neon border glow ── */
+
+.neon-border {
+  border: 1px solid oklch(0.82 0.16 195 / 0.3);
+  box-shadow:
+    0 0 8px oklch(0.82 0.16 195 / 0.1),
+    inset 0 0 8px oklch(0.82 0.16 195 / 0.03);
+}
+
+.neon-border-gold {
+  border: 1px solid oklch(0.85 0.18 85 / 0.4);
+  box-shadow:
+    0 0 12px oklch(0.85 0.18 85 / 0.15),
+    inset 0 0 8px oklch(0.85 0.18 85 / 0.03);
+}
+
+.neon-border-silver {
+  border: 1px solid oklch(0.78 0.04 240 / 0.3);
+  box-shadow: 0 0 8px oklch(0.78 0.04 240 / 0.1);
+}
+
+.neon-border-bronze {
+  border: 1px solid oklch(0.7 0.12 50 / 0.3);
+  box-shadow: 0 0 8px oklch(0.7 0.12 50 / 0.1);
+}
+
+/* ── Neon text glow ── */
+
+.text-glow {
+  text-shadow: 0 0 12px oklch(0.82 0.16 195 / 0.5), 0 0 40px oklch(0.82 0.16 195 / 0.2);
+}
+
+.text-glow-gold {
+  text-shadow: 0 0 10px oklch(0.85 0.18 85 / 0.5), 0 0 30px oklch(0.85 0.18 85 / 0.2);
+}
+
+.text-glow-beer {
+  text-shadow: 0 0 12px oklch(0.78 0.17 75 / 0.55), 0 0 36px oklch(0.78 0.17 75 / 0.25);
+}
+
+.text-beer { color: var(--color-beer); }
+.text-foam { color: var(--color-foam); }
+
+/* Foam edge — a creamy, slightly bubbly top border. Used to crown elements
+   that should feel like a freshly poured pint. */
+.beer-foam-top {
+  position: relative;
+}
+.beer-foam-top::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -6px;
+  height: 10px;
+  background:
+    radial-gradient(circle at 10% 80%, var(--color-foam) 0 3px, transparent 4px),
+    radial-gradient(circle at 25% 60%, var(--color-foam) 0 4px, transparent 5px),
+    radial-gradient(circle at 40% 80%, var(--color-foam) 0 2px, transparent 3px),
+    radial-gradient(circle at 55% 55%, var(--color-foam) 0 4px, transparent 5px),
+    radial-gradient(circle at 70% 75%, var(--color-foam) 0 3px, transparent 4px),
+    radial-gradient(circle at 85% 55%, var(--color-foam) 0 4px, transparent 5px),
+    radial-gradient(circle at 95% 80%, var(--color-foam) 0 2px, transparent 3px);
+  filter: drop-shadow(0 0 6px oklch(0.78 0.17 75 / 0.4));
+  animation: foamShimmer 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Floating-bubbles ambient background. Place on a wrapper that's positioned
+   relative; the bubbles are absolutely positioned and rise on a loop. */
+.bg-bubbles {
+  position: relative;
+  overflow: hidden;
+}
+.bg-bubbles::before,
+.bg-bubbles::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    radial-gradient(circle at 12% 20%, oklch(0.78 0.17 75 / 0.18) 0 3px, transparent 4px),
+    radial-gradient(circle at 28% 70%, oklch(0.78 0.17 75 / 0.14) 0 2px, transparent 3px),
+    radial-gradient(circle at 47% 30%, oklch(0.78 0.17 75 / 0.16) 0 4px, transparent 5px),
+    radial-gradient(circle at 62% 85%, oklch(0.78 0.17 75 / 0.12) 0 3px, transparent 4px),
+    radial-gradient(circle at 78% 45%, oklch(0.78 0.17 75 / 0.18) 0 3px, transparent 4px),
+    radial-gradient(circle at 92% 10%, oklch(0.78 0.17 75 / 0.14) 0 2px, transparent 3px);
+  background-size: 100% 220vh;
+  background-repeat: repeat-y;
+  animation: bubbleRise 22s linear infinite;
+}
+.bg-bubbles::after {
+  background-image:
+    radial-gradient(circle at 8% 60%, oklch(0.78 0.17 75 / 0.1) 0 5px, transparent 6px),
+    radial-gradient(circle at 33% 25%, oklch(0.78 0.17 75 / 0.12) 0 3px, transparent 4px),
+    radial-gradient(circle at 55% 80%, oklch(0.78 0.17 75 / 0.1) 0 4px, transparent 5px),
+    radial-gradient(circle at 84% 35%, oklch(0.78 0.17 75 / 0.12) 0 5px, transparent 6px);
+  background-size: 100% 200vh;
+  animation-duration: 34s;
+  animation-delay: -8s;
+}
+
+/* ── Grid background pattern ── */
+
+.bg-grid {
+  position: relative;
+}
+.bg-grid::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(oklch(0.82 0.16 195 / 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, oklch(0.82 0.16 195 / 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+}
+
+/* Scanline overlay — very subtle */
+.bg-scanlines::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    oklch(0 0 0 / 0.03) 2px,
+    oklch(0 0 0 / 0.03) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ── Scrollbar ── */
+
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: oklch(0.3 0.03 255);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.5 0.1 195);
+}
+
+/* ── Selection color ── */
+::selection {
+  background: oklch(0.82 0.16 195 / 0.3);
+  color: oklch(0.95 0.02 220);
 }

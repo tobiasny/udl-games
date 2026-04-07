@@ -21,19 +21,19 @@ export function RebusAdminPage() {
   const [error, setError] = useState('')
 
   if (loading) {
-    return <div className="text-center py-12 text-muted-foreground">Loading...</div>
+    return <div className="text-center py-12 text-muted-foreground">Laster...</div>
   }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">Rebus Admin</h1>
+        <h1 className="text-xl font-display tracking-wider">Rebus Admin</h1>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => { if (confirm('Reset all tasks?')) resetAll() }}>
-            <RotateCcw className="h-4 w-4 mr-1" /> Reset
+          <Button size="sm" variant="outline" onClick={() => { if (confirm('Tilbakestill alle oppgaver?')) resetAll() }}>
+            <RotateCcw className="h-4 w-4 mr-1" /> Nullstill
           </Button>
           <Button size="sm" onClick={() => setShowForm(!showForm)}>
-            <Plus className="h-4 w-4 mr-1" /> Add
+            <Plus className="h-4 w-4 mr-1" /> Legg til
           </Button>
         </div>
       </div>
@@ -46,7 +46,7 @@ export function RebusAdminPage() {
             try {
               await addTask(data.title, data.description, data.task_type, data.correct_answer, data.destination_coords, data.destination_name)
               setShowForm(false)
-            } catch { setError('Failed to add task') }
+            } catch { setError('Kunne ikke legge til oppgave') }
           }}
           onCancel={() => setShowForm(false)}
         />
@@ -62,18 +62,18 @@ export function RebusAdminPage() {
                   try {
                     await updateTask(task.id, data.title, data.description, data.task_type, data.correct_answer, data.destination_coords, data.destination_name)
                     setEditId(null)
-                  } catch { setError('Failed to update') }
+                  } catch { setError('Kunne ikke oppdatere') }
                 }}
                 onCancel={() => setEditId(null)}
               />
             ) : (
               <TaskCard
                 task={task}
-                onApprove={() => approveTask(task.id).catch(() => setError('Failed'))}
-                onArrived={() => markArrived(task.id).catch(() => setError('Failed'))}
-                onReset={() => resetTask(task.id).catch(() => setError('Failed'))}
+                onApprove={() => approveTask(task.id).catch(() => setError('Feilet'))}
+                onArrived={() => markArrived(task.id).catch(() => setError('Feilet'))}
+                onReset={() => resetTask(task.id).catch(() => setError('Feilet'))}
                 onEdit={() => setEditId(task.id)}
-                onDelete={() => { if (confirm('Delete this task?')) deleteTask(task.id).catch(() => setError('Failed')) }}
+                onDelete={() => { if (confirm('Slette denne oppgaven?')) deleteTask(task.id).catch(() => setError('Feilet')) }}
               />
             )}
           </div>
@@ -81,7 +81,7 @@ export function RebusAdminPage() {
         {tasks.length === 0 && (
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground">
-              No tasks yet. Add one above!
+              Ingen oppgaver enna. Legg til en ovenfor!
             </CardContent>
           </Card>
         )}
@@ -96,6 +96,14 @@ const STATUS_COLORS: Record<string, string> = {
   submitted: 'outline',
   approved: 'default',
   completed: 'secondary',
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  locked: 'Last',
+  active: 'Aktiv',
+  submitted: 'Innsendt',
+  approved: 'Godkjent',
+  completed: 'Fullfort',
 }
 
 function TaskCard({
@@ -118,7 +126,7 @@ function TaskCard({
           <span className="text-xs text-muted-foreground font-mono w-5">#{task.sort_order}</span>
           <span className="font-medium flex-1 text-sm">{task.title}</span>
           <Badge variant={STATUS_COLORS[task.status] as 'default' | 'secondary' | 'outline'} className="text-xs">
-            {task.status}
+            {STATUS_LABELS[task.status] ?? task.status}
           </Badge>
           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setExpanded(!expanded)}>
             {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -128,11 +136,11 @@ function TaskCard({
         {/* Submitted answer alert */}
         {task.status === 'submitted' && task.submitted_answer && (
           <div className="bg-primary/10 border border-primary/30 rounded-md px-3 py-2 text-sm">
-            <span className="text-muted-foreground">Answer: </span>
+            <span className="text-muted-foreground">Svar: </span>
             <span className="font-bold">{task.submitted_answer}</span>
             {task.correct_answer && (
               <span className="text-muted-foreground ml-2">
-                (Expected: <span className="font-mono">{task.correct_answer}</span>)
+                (Forventet: <span className="font-mono">{task.correct_answer}</span>)
               </span>
             )}
           </div>
@@ -142,17 +150,17 @@ function TaskCard({
         <div className="flex flex-wrap gap-1.5">
           {(task.status === 'active' || task.status === 'submitted') && (
             <Button size="sm" onClick={onApprove} className="text-xs h-7">
-              <CheckCircle className="h-3 w-3 mr-1" /> Approve
+              <CheckCircle className="h-3 w-3 mr-1" /> Godkjenn
             </Button>
           )}
           {task.status === 'approved' && (
             <Button size="sm" onClick={onArrived} className="text-xs h-7">
-              <MapPin className="h-3 w-3 mr-1" /> Arrived
+              <MapPin className="h-3 w-3 mr-1" /> Ankommet
             </Button>
           )}
           {task.status !== 'locked' && task.status !== 'active' && (
             <Button size="sm" variant="outline" onClick={onReset} className="text-xs h-7">
-              <RotateCcw className="h-3 w-3 mr-1" /> Reset
+              <RotateCcw className="h-3 w-3 mr-1" /> Nullstill
             </Button>
           )}
           <Button size="sm" variant="ghost" onClick={onEdit} className="text-xs h-7">
@@ -166,11 +174,11 @@ function TaskCard({
         {/* Expanded details */}
         {expanded && (
           <div className="text-xs text-muted-foreground space-y-1 pt-1 border-t">
-            <p><span className="font-medium">Type:</span> {task.task_type}</p>
-            <p><span className="font-medium">Description:</span> {task.description}</p>
-            {task.correct_answer && <p><span className="font-medium">Answer:</span> {task.correct_answer}</p>}
-            {task.destination_coords && <p><span className="font-medium">Coords:</span> {task.destination_coords}</p>}
-            {task.destination_name && <p><span className="font-medium">Destination:</span> {task.destination_name}</p>}
+            <p><span className="font-medium">Type:</span> {task.task_type === 'answer' ? 'Svar' : 'Aktivitet'}</p>
+            <p><span className="font-medium">Beskrivelse:</span> {task.description}</p>
+            {task.correct_answer && <p><span className="font-medium">Svar:</span> {task.correct_answer}</p>}
+            {task.destination_coords && <p><span className="font-medium">Koordinater:</span> {task.destination_coords}</p>}
+            {task.destination_name && <p><span className="font-medium">Destinasjon:</span> {task.destination_name}</p>}
           </div>
         )}
       </CardContent>
@@ -222,13 +230,13 @@ function TaskForm({
   return (
     <Card>
       <CardHeader className="py-3">
-        <CardTitle className="text-sm">{initial ? 'Edit Task' : 'New Task'}</CardTitle>
+        <CardTitle className="text-sm">{initial ? 'Rediger oppgave' : 'Ny oppgave'}</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-3">
-          <Input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} autoFocus />
+          <Input placeholder="Tittel" value={title} onChange={(e) => setTitle(e.target.value)} autoFocus />
           <textarea
-            placeholder="Description (shown to bachelor)"
+            placeholder="Beskrivelse (vises til utdrikningslaget)"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring min-h-[80px]"
@@ -237,24 +245,24 @@ function TaskForm({
             <label className="text-sm font-medium mb-1 block">Type</label>
             <div className="flex gap-1">
               <Button type="button" size="sm" variant={taskType === 'answer' ? 'default' : 'outline'} onClick={() => setTaskType('answer')}>
-                Answer
+                Svar
               </Button>
               <Button type="button" size="sm" variant={taskType === 'activity' ? 'default' : 'outline'} onClick={() => setTaskType('activity')}>
-                Activity
+                Aktivitet
               </Button>
             </div>
           </div>
           {taskType === 'answer' && (
-            <Input placeholder="Correct answer (for admin reference)" value={correctAnswer} onChange={(e) => setCorrectAnswer(e.target.value)} />
+            <Input placeholder="Riktig svar (for admin-referanse)" value={correctAnswer} onChange={(e) => setCorrectAnswer(e.target.value)} />
           )}
-          <Input placeholder="Destination coords (e.g. 59.9139,10.7522)" value={coords} onChange={(e) => setCoords(e.target.value)} />
-          <Input placeholder="Destination name (optional)" value={destName} onChange={(e) => setDestName(e.target.value)} />
+          <Input placeholder="Koordinater (f.eks. 59.9139,10.7522)" value={coords} onChange={(e) => setCoords(e.target.value)} />
+          <Input placeholder="Destinasjonsnavn (valgfritt)" value={destName} onChange={(e) => setDestName(e.target.value)} />
           <div className="flex gap-2">
             <Button type="submit" size="sm" disabled={saving}>
-              <Save className="h-4 w-4 mr-1" /> {saving ? 'Saving...' : 'Save'}
+              <Save className="h-4 w-4 mr-1" /> {saving ? 'Lagrer...' : 'Lagre'}
             </Button>
             <Button type="button" size="sm" variant="outline" onClick={onCancel}>
-              <X className="h-4 w-4 mr-1" /> Cancel
+              <X className="h-4 w-4 mr-1" /> Avbryt
             </Button>
           </div>
         </form>

@@ -150,3 +150,14 @@ export function generateRoundRobin(
 
   return selectedMatches
 }
+
+// How many matches generateRoundRobin would emit for a given roster size when
+// no max is supplied. Used by the create-activity form to display the "alle"
+// count up-front. Result depends only on counts, so we run the algorithm with
+// dummy ids.
+export function countAllRoundRobinMatches(numPlayers: number, teamSize: number): number {
+  if (teamSize <= 0 || teamSize * 2 > numPlayers) return 0
+  const dummies = Array.from({ length: numPlayers }, (_, i) => `p${i}`)
+  return generateRoundRobin(dummies, teamSize).length
+}
+

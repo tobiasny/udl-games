@@ -1,5 +1,5 @@
 -- Enable pgcrypto for password hashing
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
 
 -- Authenticate admin: verify password, return session token
 CREATE OR REPLACE FUNCTION authenticate_admin(password_input text)
@@ -16,7 +16,7 @@ BEGIN
     RAISE EXCEPTION 'Admin not configured';
   END IF;
 
-  IF stored_hash != crypt(password_input, stored_hash) THEN
+  IF stored_hash != extensions.crypt(password_input, stored_hash) THEN
     RETURN NULL;
   END IF;
 
@@ -64,5 +64,5 @@ $$;
 -- Insert default admin password (change this!)
 -- Default password: "admin123"
 INSERT INTO app_settings (id, admin_password_hash)
-VALUES (1, crypt('admin123', gen_salt('bf')))
+VALUES (1, extensions.crypt('admin123', extensions.gen_salt('bf')))
 ON CONFLICT (id) DO NOTHING;

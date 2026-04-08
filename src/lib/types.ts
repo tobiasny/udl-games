@@ -26,6 +26,7 @@ export interface Activity {
   sort_order: number
   num_rounds: number
   created_at: string
+  completed_at: string | null
 }
 
 export interface ActivityContestant {

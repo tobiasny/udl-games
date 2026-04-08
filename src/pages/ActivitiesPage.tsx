@@ -49,6 +49,11 @@ export function ActivitiesPage() {
 
   // Hide events from the admin activity list -- they live on /admin/events.
   const visibleActivities = activities.filter((a) => a.type !== 'event')
+  // Group by status so the admin sees ongoing work first, drafts in the
+  // middle, and completed at the bottom (out of the way once awarded).
+  const inProgressActivities = visibleActivities.filter((a) => a.status === 'in_progress')
+  const draftActivities = visibleActivities.filter((a) => a.status === 'draft')
+  const completedActivities = visibleActivities.filter((a) => a.status === 'completed')
 
   function handleTypeChange(newType: ActivityType) {
     setType(newType)
@@ -259,52 +264,97 @@ export function ActivitiesPage() {
         </Card>
       )}
 
-      <div className="space-y-2">
-        {visibleActivities.map((a) => (
-          <Link key={a.id} to={`/admin/activities/${a.id}`}>
-            <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
-              <CardContent className="flex items-center justify-between py-3 px-4">
-                <div className="space-y-1">
-                  <div className="font-medium">{a.name}</div>
-                  <div className="flex gap-1">
-                    <Badge variant="secondary" className="text-xs">
-                      {ACTIVITY_TYPE_LABELS[a.type]}
-                    </Badge>
-                    <Badge variant="outline" className="text-xs">
-                      {ACTIVITY_FORMAT_LABELS[a.format]}
-                    </Badge>
-                    <Badge
-                      variant={a.status === 'completed' ? 'default' : 'secondary'}
-                      className="text-xs"
-                    >
-                      {STATUS_LABELS[a.status] ?? a.status}
-                    </Badge>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                    onClick={(e) => handleDelete(e, a.id, a.name)}
-                    aria-label="Slett aktivitet"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-        {visibleActivities.length === 0 && (
-          <Card>
-            <CardContent className="py-8 text-center text-muted-foreground">
-              Ingen aktiviteter enna. Opprett en ovenfor!
-            </CardContent>
-          </Card>
-        )}
-      </div>
+      {visibleActivities.length === 0 ? (
+        <Card>
+          <CardContent className="py-8 text-center text-muted-foreground">
+            Ingen aktiviteter ennå. Opprett en ovenfor!
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-6">
+          <ActivitySection
+            title="Pågår"
+            activities={inProgressActivities}
+            onDelete={handleDelete}
+            emptyText="Ingen pågående aktiviteter."
+          />
+          <ActivitySection
+            title="Utkast"
+            activities={draftActivities}
+            onDelete={handleDelete}
+            emptyText="Ingen utkast."
+          />
+          <ActivitySection
+            title="Fullført"
+            activities={completedActivities}
+            onDelete={handleDelete}
+            emptyText="Ingen fullførte aktiviteter ennå."
+          />
+        </div>
+      )}
     </div>
+  )
+}
+
+function ActivitySection({
+  title,
+  activities,
+  onDelete,
+  emptyText,
+}: {
+  title: string
+  activities: { id: string; name: string; type: ActivityType; format: ActivityFormat; status: 'draft' | 'in_progress' | 'completed' }[]
+  onDelete: (e: React.MouseEvent, id: string, name: string) => void
+  emptyText: string
+}) {
+  return (
+    <section className="space-y-2">
+      <h2 className="text-sm font-display tracking-widest text-muted-foreground px-1">
+        {title} ({activities.length})
+      </h2>
+      {activities.length === 0 ? (
+        <p className="text-xs text-muted-foreground px-1 italic">{emptyText}</p>
+      ) : (
+        <div className="space-y-2">
+          {activities.map((a) => (
+            <Link key={a.id} to={`/admin/activities/${a.id}`}>
+              <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
+                <CardContent className="flex items-center justify-between py-3 px-4">
+                  <div className="space-y-1">
+                    <div className="font-medium">{a.name}</div>
+                    <div className="flex gap-1">
+                      <Badge variant="secondary" className="text-xs">
+                        {ACTIVITY_TYPE_LABELS[a.type]}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        {ACTIVITY_FORMAT_LABELS[a.format]}
+                      </Badge>
+                      <Badge
+                        variant={a.status === 'completed' ? 'default' : 'secondary'}
+                        className="text-xs"
+                      >
+                        {STATUS_LABELS[a.status] ?? a.status}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      onClick={(e) => onDelete(e, a.id, a.name)}
+                      aria-label="Slett aktivitet"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      )}
+    </section>
   )
 }

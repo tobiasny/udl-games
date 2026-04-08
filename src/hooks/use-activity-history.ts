@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import type { Activity, Contestant, Points } from '@/lib/types'
+import type { Activity, Contestant, Match, Points } from '@/lib/types'
 
 export interface ActivityStanding {
   contestant: Contestant
@@ -8,9 +8,19 @@ export interface ActivityStanding {
   rank: number
 }
 
+// Snapshot of how far an in-progress activity has gone. `total` may be 0 for
+// formats (like free_for_all) where there are no matches to count -- the UI
+// uses that to show a generic "in progress" hint instead of a fraction.
+export interface ActivityProgress {
+  completedMatches: number
+  totalMatches: number
+  participantCount: number
+}
+
 export interface ActivityWithStandings {
   activity: Activity
   standings: ActivityStanding[]
+  progress?: ActivityProgress
 }
 
 export function useActivityHistory() {
@@ -19,17 +29,19 @@ export function useActivityHistory() {
   const [loading, setLoading] = useState(true)
 
   const fetchAll = useCallback(async () => {
-    const [activitiesRes, contestantsRes, pointsRes, acRes] = await Promise.all([
+    const [activitiesRes, contestantsRes, pointsRes, acRes, matchesRes] = await Promise.all([
       supabase.from('activities').select('*').order('created_at', { ascending: false }),
       supabase.from('contestants').select('*'),
       supabase.from('points').select('*'),
       supabase.from('activity_contestants').select('*'),
+      supabase.from('matches').select('id, activity_id, status'),
     ])
 
     const activities = (activitiesRes.data ?? []) as Activity[]
     const contestants = (contestantsRes.data ?? []) as Contestant[]
     const points = (pointsRes.data ?? []) as Points[]
     const acs = (acRes.data ?? []) as { activity_id: string; contestant_id: string }[]
+    const matches = (matchesRes.data ?? []) as Pick<Match, 'id' | 'activity_id' | 'status'>[]
 
     const contestantMap = new Map(contestants.map((c) => [c.id, c]))
 
@@ -62,13 +74,33 @@ export function useActivityHistory() {
       })
     }
 
+    function progressFor(activity: Activity): ActivityProgress {
+      const activityMatches = matches.filter((m) => m.activity_id === activity.id)
+      const completedMatches = activityMatches.filter((m) => m.status === 'completed').length
+      const participantCount = acs.filter((ac) => ac.activity_id === activity.id).length
+      return {
+        completedMatches,
+        totalMatches: activityMatches.length,
+        participantCount,
+      }
+    }
+
+    // Order by when each activity actually finished, not when it was created.
+    // Events are inserted as already-completed and would otherwise always sit
+    // at the top of the list regardless of when surrounding activities ended.
+    // Fall back to created_at for any legacy row missing completed_at.
     const completedList: ActivityWithStandings[] = activities
       .filter((a) => a.status === 'completed')
       .map((a) => ({ activity: a, standings: standingsFor(a) }))
+      .sort((a, b) => {
+        const at = a.activity.completed_at ?? a.activity.created_at
+        const bt = b.activity.completed_at ?? b.activity.created_at
+        return bt.localeCompare(at)
+      })
 
     const currentList: ActivityWithStandings[] = activities
       .filter((a) => a.status === 'in_progress')
-      .map((a) => ({ activity: a, standings: standingsFor(a) }))
+      .map((a) => ({ activity: a, standings: standingsFor(a), progress: progressFor(a) }))
 
     setCompleted(completedList)
     setCurrents(currentList)

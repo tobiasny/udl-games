@@ -1,19 +1,20 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRebus, type RebusTask } from '@/hooks/use-rebus'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import {
-  Plus, Trash2, RotateCcw, CheckCircle, MapPin, Pencil,
-  X, Save, ChevronDown, ChevronUp,
+  Plus, Trash2, RotateCcw, CheckCircle, XCircle, MapPin, Pencil,
+  X, Save, ChevronDown, ChevronUp, Flag,
 } from 'lucide-react'
+import { parseLatLon } from '@/lib/geo'
 
 export function RebusAdminPage() {
   const {
-    tasks, loading,
-    approveTask, markArrived, addTask, updateTask, deleteTask,
-    resetAll, resetTask,
+    tasks, settings, loading,
+    approveTask, rejectAnswer, markArrived, addTask, updateTask, deleteTask,
+    resetAll, resetTask, setStart,
   } = useRebus()
 
   const [showForm, setShowForm] = useState(false)
@@ -40,11 +41,22 @@ export function RebusAdminPage() {
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
+      <StartCoordsCard
+        startCoords={settings.start_coords}
+        onSave={async (coords) => {
+          try {
+            await setStart(coords)
+          } catch {
+            setError('Kunne ikke lagre startpunkt')
+          }
+        }}
+      />
+
       {showForm && (
         <TaskForm
           onSave={async (data) => {
             try {
-              await addTask(data.title, data.description, data.task_type, data.correct_answer, data.destination_coords, data.destination_name)
+              await addTask(data.title, data.description, data.task_type, data.correct_answer, data.destination_coords)
               setShowForm(false)
             } catch { setError('Kunne ikke legge til oppgave') }
           }}
@@ -60,7 +72,7 @@ export function RebusAdminPage() {
                 initial={task}
                 onSave={async (data) => {
                   try {
-                    await updateTask(task.id, data.title, data.description, data.task_type, data.correct_answer, data.destination_coords, data.destination_name)
+                    await updateTask(task.id, data.title, data.description, data.task_type, data.correct_answer, data.destination_coords)
                     setEditId(null)
                   } catch { setError('Kunne ikke oppdatere') }
                 }}
@@ -70,6 +82,7 @@ export function RebusAdminPage() {
               <TaskCard
                 task={task}
                 onApprove={() => approveTask(task.id).catch(() => setError('Feilet'))}
+                onReject={() => rejectAnswer(task.id).catch(() => setError('Feilet'))}
                 onArrived={() => markArrived(task.id).catch(() => setError('Feilet'))}
                 onReset={() => resetTask(task.id).catch(() => setError('Feilet'))}
                 onEdit={() => setEditId(task.id)}
@@ -81,7 +94,7 @@ export function RebusAdminPage() {
         {tasks.length === 0 && (
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground">
-              Ingen oppgaver enna. Legg til en ovenfor!
+              Ingen oppgaver ennå. Legg til en ovenfor!
             </CardContent>
           </Card>
         )}
@@ -94,23 +107,26 @@ const STATUS_COLORS: Record<string, string> = {
   locked: 'secondary',
   active: 'default',
   submitted: 'outline',
+  rejected: 'outline',
   approved: 'default',
   completed: 'secondary',
 }
 
 const STATUS_LABELS: Record<string, string> = {
-  locked: 'Last',
+  locked: 'Låst',
   active: 'Aktiv',
   submitted: 'Innsendt',
+  rejected: 'Avvist',
   approved: 'Godkjent',
-  completed: 'Fullfort',
+  completed: 'Fullført',
 }
 
 function TaskCard({
-  task, onApprove, onArrived, onReset, onEdit, onDelete,
+  task, onApprove, onReject, onArrived, onReset, onEdit, onDelete,
 }: {
   task: RebusTask
   onApprove: () => void
+  onReject: () => void
   onArrived: () => void
   onReset: () => void
   onEdit: () => void
@@ -153,6 +169,11 @@ function TaskCard({
               <CheckCircle className="h-3 w-3 mr-1" /> Godkjenn
             </Button>
           )}
+          {task.status === 'submitted' && task.task_type === 'answer' && (
+            <Button size="sm" variant="destructive" onClick={onReject} className="text-xs h-7">
+              <XCircle className="h-3 w-3 mr-1" /> Avvis
+            </Button>
+          )}
           {task.status === 'approved' && (
             <Button size="sm" onClick={onArrived} className="text-xs h-7">
               <MapPin className="h-3 w-3 mr-1" /> Ankommet
@@ -178,7 +199,6 @@ function TaskCard({
             <p><span className="font-medium">Beskrivelse:</span> {task.description}</p>
             {task.correct_answer && <p><span className="font-medium">Svar:</span> {task.correct_answer}</p>}
             {task.destination_coords && <p><span className="font-medium">Koordinater:</span> {task.destination_coords}</p>}
-            {task.destination_name && <p><span className="font-medium">Destinasjon:</span> {task.destination_name}</p>}
           </div>
         )}
       </CardContent>
@@ -192,7 +212,6 @@ interface TaskFormData {
   task_type: 'answer' | 'activity'
   correct_answer?: string
   destination_coords?: string
-  destination_name?: string
 }
 
 function TaskForm({
@@ -209,7 +228,6 @@ function TaskForm({
   const [taskType, setTaskType] = useState<'answer' | 'activity'>(initial?.task_type ?? 'answer')
   const [correctAnswer, setCorrectAnswer] = useState(initial?.correct_answer ?? '')
   const [coords, setCoords] = useState(initial?.destination_coords ?? '')
-  const [destName, setDestName] = useState(initial?.destination_name ?? '')
   const [saving, setSaving] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -222,7 +240,6 @@ function TaskForm({
       task_type: taskType,
       correct_answer: correctAnswer.trim() || undefined,
       destination_coords: coords.trim() || undefined,
-      destination_name: destName.trim() || undefined,
     })
     setSaving(false)
   }
@@ -256,7 +273,6 @@ function TaskForm({
             <Input placeholder="Riktig svar (for admin-referanse)" value={correctAnswer} onChange={(e) => setCorrectAnswer(e.target.value)} />
           )}
           <Input placeholder="Koordinater (f.eks. 59.9139,10.7522)" value={coords} onChange={(e) => setCoords(e.target.value)} />
-          <Input placeholder="Destinasjonsnavn (valgfritt)" value={destName} onChange={(e) => setDestName(e.target.value)} />
           <div className="flex gap-2">
             <Button type="submit" size="sm" disabled={saving}>
               <Save className="h-4 w-4 mr-1" /> {saving ? 'Lagrer...' : 'Lagre'}
@@ -266,6 +282,72 @@ function TaskForm({
             </Button>
           </div>
         </form>
+      </CardContent>
+    </Card>
+  )
+}
+
+// Form for the global start coordinates of the rebus run. Used as the
+// "from" point for the very first leg of the route, before any task has
+// been completed. Saved value lives in rebus_settings (singleton row).
+function StartCoordsCard({
+  startCoords,
+  onSave,
+}: {
+  startCoords: string | null
+  onSave: (coords: string) => Promise<void>
+}) {
+  const [coords, setCoords] = useState(startCoords ?? '')
+  const [saving, setSaving] = useState(false)
+  const [localError, setLocalError] = useState('')
+
+  // Sync local form state when the persisted settings load/refresh.
+  useEffect(() => { setCoords(startCoords ?? '') }, [startCoords])
+
+  const parsed = parseLatLon(coords)
+  const isValid = parsed !== null
+  const isDirty = (coords ?? '') !== (startCoords ?? '')
+
+  async function handleSave() {
+    if (!isValid) {
+      setLocalError('Ugyldige koordinater. Bruk formatet "lat,lon".')
+      return
+    }
+    setLocalError('')
+    setSaving(true)
+    try {
+      await onSave(coords.trim())
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader className="py-3">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <Flag className="h-4 w-4 text-primary" />
+          Startpunkt
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <p className="text-xs text-muted-foreground">
+          Brukes som "fra"-punkt på kartet for det første oppdraget.
+        </p>
+        <Input
+          placeholder="Koordinater (f.eks. 59.9139,10.7522)"
+          value={coords}
+          onChange={(e) => setCoords(e.target.value)}
+        />
+        {localError && <p className="text-xs text-destructive">{localError}</p>}
+        <div className="flex items-center gap-2">
+          <Button size="sm" onClick={handleSave} disabled={saving || !isDirty || !isValid}>
+            <Save className="h-4 w-4 mr-1" /> {saving ? 'Lagrer...' : 'Lagre startpunkt'}
+          </Button>
+          {startCoords && !isDirty && (
+            <span className="text-xs text-muted-foreground font-mono">{startCoords}</span>
+          )}
+        </div>
       </CardContent>
     </Card>
   )

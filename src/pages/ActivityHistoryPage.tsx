@@ -1,10 +1,11 @@
+import { useState } from 'react'
 import { useActivityHistory, type ActivityWithStandings } from '@/hooks/use-activity-history'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { AnimatedNumber } from '@/components/AnimatedNumber'
 import { ACTIVITY_TYPE_LABELS, ACTIVITY_FORMAT_LABELS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
-import { Radio, Trophy, History, User } from 'lucide-react'
+import { Radio, Trophy, History, User, Hourglass, ChevronDown, Sparkles } from 'lucide-react'
+import type { ActivityFormat } from '@/lib/types'
 
 export function ActivityHistoryPage() {
   const { completed, currents, loading } = useActivityHistory()
@@ -31,7 +32,7 @@ export function ActivityHistoryPage() {
           <div className="flex items-center gap-2 px-1">
             <Radio className="h-4 w-4 text-primary animate-pulse" />
             <h2 className="font-display text-sm tracking-widest text-primary">
-              {currents.length === 1 ? 'Pagar na' : `Pagar na (${currents.length})`}
+              {currents.length === 1 ? 'Pågår nå' : `Pågår nå (${currents.length})`}
             </h2>
             <div className="flex-1 h-px bg-gradient-to-r from-primary/40 to-transparent" />
           </div>
@@ -53,14 +54,18 @@ export function ActivityHistoryPage() {
         {completed.length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground">
-              Ingen fullforte aktiviteter enna.
+              Ingen fullførte aktiviteter ennå.
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-3">
-            {completed.map((item, i) => (
-              <CompletedActivityCard key={item.activity.id} data={item} index={i} />
-            ))}
+            {completed.map((item, i) =>
+              item.activity.format === 'event' ? (
+                <EventCard key={item.activity.id} data={item} index={i} />
+              ) : (
+                <CompletedActivityCard key={item.activity.id} data={item} index={i} />
+              ),
+            )}
           </div>
         )}
       </section>
@@ -69,7 +74,7 @@ export function ActivityHistoryPage() {
 }
 
 function CurrentActivityCard({ data }: { data: ActivityWithStandings }) {
-  const { activity, standings } = data
+  const { activity, progress } = data
   return (
     <Card className="neon-border animate-pulse-glow">
       <CardHeader className="pb-3">
@@ -84,13 +89,132 @@ function CurrentActivityCard({ data }: { data: ActivityWithStandings }) {
         </div>
       </CardHeader>
       <CardContent>
-        {standings.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">
-            Venter pa deltakere...
-          </p>
-        ) : (
-          <StandingsList standings={standings} compact={false} live />
-        )}
+        <ProgressInfo
+          format={activity.format}
+          completedMatches={progress?.completedMatches ?? 0}
+          totalMatches={progress?.totalMatches ?? 0}
+          participantCount={progress?.participantCount ?? 0}
+        />
+      </CardContent>
+    </Card>
+  )
+}
+
+// Match-based formats use "kamper", round-based formats use "runder", and
+// free-for-all has no matches at all -- show a generic in-progress hint.
+function ProgressInfo({
+  format,
+  completedMatches,
+  totalMatches,
+  participantCount,
+}: {
+  format: ActivityFormat
+  completedMatches: number
+  totalMatches: number
+  participantCount: number
+}) {
+  if (format === 'free_for_all') {
+    return (
+      <div className="flex items-center gap-3 text-sm text-muted-foreground py-2">
+        <Hourglass className="h-4 w-4 text-primary animate-pulse" />
+        <span>
+          Rangering pågår - {participantCount} deltaker{participantCount === 1 ? '' : 'e'}
+        </span>
+      </div>
+    )
+  }
+
+  if (totalMatches === 0) {
+    return (
+      <div className="flex items-center gap-3 text-sm text-muted-foreground py-2">
+        <Hourglass className="h-4 w-4 text-primary animate-pulse" />
+        <span>Venter på at kamper genereres...</span>
+      </div>
+    )
+  }
+
+  const remaining = Math.max(0, totalMatches - completedMatches)
+  const unitLabel =
+    format === 'multi_team_battle' || format === 'team_battle' ? 'runder' : 'kamper'
+  const unitLabelSingularDone =
+    format === 'multi_team_battle' || format === 'team_battle' ? 'runde' : 'kamp'
+  const pct = totalMatches === 0 ? 0 : Math.round((completedMatches / totalMatches) * 100)
+
+  return (
+    <div className="space-y-2 py-1">
+      <div className="flex items-center gap-3 text-sm">
+        <Hourglass className="h-4 w-4 text-primary animate-pulse shrink-0" />
+        <span className="font-display tracking-wider text-primary text-base">
+          {completedMatches} / {totalMatches}
+        </span>
+        <span className="text-muted-foreground">
+          {completedMatches === 1 ? unitLabelSingularDone : unitLabel} ferdig
+        </span>
+      </div>
+      <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden">
+        <div
+          className="h-full bg-primary transition-all"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <div className="text-xs text-muted-foreground">
+        {remaining === 0
+          ? 'Alle kamper spilt - venter på fullføring'
+          : `${remaining} ${remaining === 1 ? unitLabelSingularDone : unitLabel} igjen`}
+      </div>
+    </div>
+  )
+}
+
+// Events are point-award entries -- not collapsible. The activity name is
+// the event title, and there's typically a single recipient. We render each
+// recipient on its own row with their name and the points awarded, dropping
+// rank/badges/winner labels because they'd just duplicate the title.
+function EventCard({ data, index }: { data: ActivityWithStandings; index: number }) {
+  const { activity, standings } = data
+  return (
+    <Card style={{ animationDelay: `${index * 60}ms` }}>
+      <CardHeader className="pb-2">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-primary shrink-0" />
+          <CardTitle className="font-display text-lg tracking-wider">
+            {activity.name}
+          </CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-1">
+          {standings.map((row) => (
+            <div
+              key={row.contestant.id}
+              className="flex items-center justify-between gap-3 px-2 py-1.5"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                {row.contestant.avatar_url ? (
+                  <img
+                    src={row.contestant.avatar_url}
+                    alt={row.contestant.name}
+                    className="w-6 h-6 rounded-full object-cover border border-border shrink-0"
+                  />
+                ) : (
+                  <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                    <User className="h-3 w-3 text-muted-foreground" />
+                  </div>
+                )}
+                <span className="font-medium text-sm truncate">{row.contestant.name}</span>
+              </div>
+              <div className="text-right shrink-0">
+                <span className={cn(
+                  'font-display tracking-wider text-base',
+                  row.points >= 0 ? 'text-primary' : 'text-destructive',
+                )}>
+                  {row.points > 0 ? '+' : ''}{row.points}
+                </span>
+                <span className="text-xs text-muted-foreground ml-1">MM</span>
+              </div>
+            </div>
+          ))}
+        </div>
       </CardContent>
     </Card>
   )
@@ -98,31 +222,53 @@ function CurrentActivityCard({ data }: { data: ActivityWithStandings }) {
 
 function CompletedActivityCard({ data, index }: { data: ActivityWithStandings; index: number }) {
   const { activity, standings } = data
-  const winner = standings[0]
+  // Team formats award the same point total to every member of the winning
+  // team, so "winner" is everyone tied at rank 1 -- not just standings[0].
+  const winners = standings.filter((s) => s.rank === 1)
+  const [expanded, setExpanded] = useState(false)
 
   return (
     <Card style={{ animationDelay: `${index * 60}ms` }}>
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <CardTitle className="font-display text-lg tracking-wider">
-            {activity.name}
-          </CardTitle>
-          <div className="flex gap-1">
-            <Badge variant="secondary" className="text-xs">{ACTIVITY_TYPE_LABELS[activity.type]}</Badge>
-            <Badge variant="outline" className="text-xs">{ACTIVITY_FORMAT_LABELS[activity.format]}</Badge>
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+        className="w-full text-left"
+      >
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <CardTitle className="font-display text-lg tracking-wider">
+              {activity.name}
+            </CardTitle>
+            <div className="flex items-center gap-1">
+              <Badge variant="secondary" className="text-xs">{ACTIVITY_TYPE_LABELS[activity.type]}</Badge>
+              <Badge variant="outline" className="text-xs">{ACTIVITY_FORMAT_LABELS[activity.format]}</Badge>
+              <ChevronDown
+                className={cn(
+                  'h-4 w-4 ml-1 text-muted-foreground transition-transform',
+                  expanded && 'rotate-180'
+                )}
+              />
+            </div>
           </div>
-        </div>
-        {winner && (
-          <div className="flex items-center gap-2 text-sm pt-1">
-            <Trophy className="h-4 w-4 text-gold" />
-            <span className="text-muted-foreground">Vinner:</span>
-            <span className="font-semibold text-gold">{winner.contestant.name}</span>
-          </div>
-        )}
-      </CardHeader>
-      <CardContent>
-        <StandingsList standings={standings} compact />
-      </CardContent>
+          {winners.length > 0 && (
+            <div className="flex items-start gap-2 text-sm pt-1">
+              <Trophy className="h-4 w-4 text-gold mt-0.5 shrink-0" />
+              <span className="text-muted-foreground shrink-0">
+                {winners.length === 1 ? 'Vinner:' : 'Vinnere:'}
+              </span>
+              <span className="font-semibold text-gold">
+                {winners.map((w) => w.contestant.name).join(', ')}
+              </span>
+            </div>
+          )}
+        </CardHeader>
+      </button>
+      {expanded && (
+        <CardContent>
+          <StandingsList standings={standings} compact />
+        </CardContent>
+      )}
     </Card>
   )
 }
@@ -130,11 +276,9 @@ function CompletedActivityCard({ data, index }: { data: ActivityWithStandings; i
 function StandingsList({
   standings,
   compact,
-  live,
 }: {
   standings: { contestant: { id: string; name: string; avatar_url: string | null }; points: number; rank: number }[]
   compact?: boolean
-  live?: boolean
 }) {
   return (
     <div className={cn('space-y-1.5', compact && 'space-y-1')}>
@@ -170,16 +314,9 @@ function StandingsList({
             {row.contestant.name}
           </span>
           <div className="text-right">
-            {live ? (
-              <AnimatedNumber
-                value={row.points}
-                className={cn('font-display tracking-wider text-primary', compact ? 'text-base' : 'text-xl')}
-              />
-            ) : (
-              <span className={cn('font-display tracking-wider text-primary', compact ? 'text-base' : 'text-xl')}>
-                {row.points}
-              </span>
-            )}
+            <span className={cn('font-display tracking-wider text-primary', compact ? 'text-base' : 'text-xl')}>
+              {row.points}
+            </span>
             <span className="text-xs text-muted-foreground ml-1">MM</span>
           </div>
         </div>

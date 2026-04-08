@@ -17,7 +17,7 @@ export default function App() {
 
   return (
     <AuthContext.Provider value={auth}>
-      <div className="min-h-screen bg-background bg-grid relative">
+      <div className="min-h-screen bg-background">
         <Routes>
           {/* Hidden full-screen rebus view — no header, no menu */}
           <Route path="/rebus/run" element={<RebusPage />} />

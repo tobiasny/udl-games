@@ -65,7 +65,7 @@ export function ContestantsPage() {
 
       <form onSubmit={handleAdd} className="flex gap-2">
         <Input
-          placeholder="Navn pa ny deltaker"
+          placeholder="Navn på ny deltaker"
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           className="flex-1"
@@ -159,7 +159,7 @@ export function ContestantsPage() {
                   {avatarUrl.trim() && (
                     <img
                       src={avatarUrl}
-                      alt="Forhandsvisning"
+                      alt="Forhåndsvisning"
                       className="w-8 h-8 rounded-full object-cover border border-border"
                       onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                     />

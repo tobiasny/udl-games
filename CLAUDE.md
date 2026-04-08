@@ -28,7 +28,7 @@ Pull these in only when the task touches the area — they're not loaded by defa
 **Admin**: `/login`, `/admin/activities`, `/admin/contestants`, `/admin/rebus`. Admin header has a "Rebus-vis" button that opens `/rebus/run` in a new tab.
 
 ## Hard Rules (non-negotiable)
-- **Norwegian UI, ASCII only** in source files — use `a/o/ae` instead of `å/ø/æ`.
+- **Norwegian UI** — use proper diacritics (`å/ø/æ`) in user-facing strings. Source files are UTF-8.
 - **Mutations live in domain hooks, not pages.** Pages call `useActivities().deleteActivity(id)`, not `supabase.rpc(...)` directly. Only intentional exception: bracket generation in `ActivityDetailPage`.
 - **Mutation hooks throw on error**, then refetch. Never swallow errors. Pages wrap handlers in try/catch (`runAction` helper pattern in `ActivityDetailPage`) and show a banner.
 - **Multi-step mutations short-circuit on failure.** E.g. `handleCompleteAndAward` must NOT mark an activity completed if `savePoints` threw.

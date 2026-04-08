@@ -11,22 +11,34 @@ export interface RebusTask {
   correct_answer: string | null
   destination_coords: string | null
   destination_name: string | null
-  status: 'locked' | 'active' | 'submitted' | 'approved' | 'completed'
+  status: 'locked' | 'active' | 'submitted' | 'approved' | 'completed' | 'rejected'
   submitted_answer: string | null
   created_at: string
 }
 
+export interface RebusSettings {
+  start_coords: string | null
+  start_name: string | null
+}
+
 export function useRebus() {
   const [tasks, setTasks] = useState<RebusTask[]>([])
+  const [settings, setSettings] = useState<RebusSettings>({ start_coords: null, start_name: null })
   const [loading, setLoading] = useState(true)
   const { sessionToken } = useAuth()
 
   const fetchTasks = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('rebus_tasks')
-      .select('*')
-      .order('sort_order')
-    if (!error && data) setTasks(data)
+    const [tasksRes, settingsRes] = await Promise.all([
+      supabase.from('rebus_tasks').select('*').order('sort_order'),
+      supabase.from('rebus_settings').select('start_coords, start_name').eq('id', 1).maybeSingle(),
+    ])
+    if (!tasksRes.error && tasksRes.data) setTasks(tasksRes.data)
+    if (!settingsRes.error && settingsRes.data) {
+      setSettings({
+        start_coords: settingsRes.data.start_coords,
+        start_name: settingsRes.data.start_name,
+      })
+    }
     setLoading(false)
   }, [])
 
@@ -54,6 +66,27 @@ export function useRebus() {
     await fetchTasks()
   }
 
+  // Admin: reject a submitted answer. Parks the task in 'rejected' so the
+  // bachelor's view can show the "wrong answer, take a shot" screen.
+  const rejectAnswer = async (taskId: string) => {
+    const { error } = await supabase.rpc('rebus_reject_answer', {
+      token_input: sessionToken,
+      task_id_input: taskId,
+    })
+    if (error) throw error
+    await fetchTasks()
+  }
+
+  // Bachelor: retry a rejected answer task. Flips it back to active so the
+  // answer form re-appears. Public RPC -- no admin token needed.
+  const retryTask = async (taskId: string) => {
+    const { error } = await supabase.rpc('rebus_retry_task', {
+      task_id_input: taskId,
+    })
+    if (error) throw error
+    await fetchTasks()
+  }
+
   // Admin: mark arrived
   const markArrived = async (taskId: string) => {
     const { error } = await supabase.rpc('rebus_mark_arrived', {
@@ -64,14 +97,15 @@ export function useRebus() {
     await fetchTasks()
   }
 
-  // Admin: add task
+  // Admin: add task. The destination_name column is left in the schema for
+  // historical reasons but is no longer surfaced in the UI -- always pass
+  // null so existing rows aren't accidentally repopulated.
   const addTask = async (
     title: string,
     description: string,
     taskType: 'answer' | 'activity',
     correctAnswer?: string,
     destinationCoords?: string,
-    destinationName?: string,
   ) => {
     const { error } = await supabase.rpc('rebus_add_task', {
       token_input: sessionToken,
@@ -80,7 +114,7 @@ export function useRebus() {
       task_type_input: taskType,
       correct_answer_input: correctAnswer ?? null,
       destination_coords_input: destinationCoords ?? null,
-      destination_name_input: destinationName ?? null,
+      destination_name_input: null,
     })
     if (error) throw error
     await fetchTasks()
@@ -94,7 +128,6 @@ export function useRebus() {
     taskType: 'answer' | 'activity',
     correctAnswer?: string,
     destinationCoords?: string,
-    destinationName?: string,
   ) => {
     const { error } = await supabase.rpc('rebus_update_task', {
       token_input: sessionToken,
@@ -104,7 +137,7 @@ export function useRebus() {
       task_type_input: taskType,
       correct_answer_input: correctAnswer ?? null,
       destination_coords_input: destinationCoords ?? null,
-      destination_name_input: destinationName ?? null,
+      destination_name_input: null,
     })
     if (error) throw error
     await fetchTasks()
@@ -139,17 +172,34 @@ export function useRebus() {
     await fetchTasks()
   }
 
+  // Admin: set start coordinates for the route. The accompanying name field
+  // is no longer collected from the UI -- pass null so the column stays
+  // empty and the schema isn't broken.
+  const setStart = async (startCoords: string) => {
+    const { error } = await supabase.rpc('rebus_set_start', {
+      token_input: sessionToken,
+      start_coords_input: startCoords,
+      start_name_input: null,
+    })
+    if (error) throw error
+    await fetchTasks()
+  }
+
   return {
     tasks,
+    settings,
     loading,
     submitAnswer,
     approveTask,
+    rejectAnswer,
+    retryTask,
     markArrived,
     addTask,
     updateTask,
     deleteTask,
     resetAll,
     resetTask,
+    setStart,
     refetch: fetchTasks,
   }
 }

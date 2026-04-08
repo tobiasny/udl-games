@@ -98,8 +98,8 @@ export function EventsPage() {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Del ut bonuspoeng som ikke horer til en vanlig aktivitet. Eventet dukker
-        opp pa ledertavlen og i aktivitetsoversikten umiddelbart.
+        Del ut bonuspoeng som ikke hører til en vanlig aktivitet. Eventet dukker
+        opp på ledertavlen og i aktivitetsoversikten umiddelbart.
       </p>
 
       {showForm && (
@@ -107,7 +107,7 @@ export function EventsPage() {
           <CardContent className="pt-4">
             <form onSubmit={handleSubmit} className="space-y-3">
               <Input
-                placeholder="Tittel (f.eks. 'Danset best pa festen')"
+                placeholder="Tittel (f.eks. 'Danset best på festen')"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 autoFocus
@@ -140,7 +140,7 @@ export function EventsPage() {
                   onChange={(e) => setPointsInput(e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Bruk et negativt tall for a trekke fra poeng.
+                  Bruk et negativt tall for å trekke fra poeng.
                 </p>
               </div>
 
@@ -212,7 +212,7 @@ export function EventsPage() {
         {events.length === 0 && (
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground">
-              Ingen events enna. Lag et ovenfor!
+              Ingen events ennå. Lag et ovenfor!
             </CardContent>
           </Card>
         )}

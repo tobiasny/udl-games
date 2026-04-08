@@ -18,8 +18,8 @@ export const MULTI_TEAM_COUNT = 4
 
 export const STATUS_LABELS: Record<ActivityStatus, string> = {
   draft: 'Utkast',
-  in_progress: 'Pagar',
-  completed: 'Fullfort',
+  in_progress: 'Pågår',
+  completed: 'Fullført',
 }
 
 // Default point suggestions for free-for-all (8 players)
@@ -53,7 +53,7 @@ export const VALID_FORMATS: Record<ActivityType, ActivityFormat[]> = {
   free_for_all: ['free_for_all'],
   '1v1': ['round_robin', 'double_elimination'],
   '2v2': ['round_robin', 'double_elimination'],
-  '3v3': ['round_robin', 'double_elimination'],
+  '3v3': ['round_robin', 'team_battle'],
   '4v4': ['team_battle'],
   '2v2v2v2': ['multi_team_battle'],
   event: ['event'],

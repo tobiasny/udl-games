@@ -3,7 +3,7 @@ import { useLeaderboard, type LeaderboardEntryWithDelta } from '@/hooks/use-lead
 import { Card, CardContent } from '@/components/ui/card'
 import { AnimatedNumber } from '@/components/AnimatedNumber'
 import { cn } from '@/lib/utils'
-import { Crown, Medal, Award, TrendingUp, TrendingDown, Beer } from 'lucide-react'
+import { Crown, Medal, Award, TrendingUp, TrendingDown } from 'lucide-react'
 
 const RANK_STYLES: Record<number, string> = {
   1: 'neon-border-gold',
@@ -40,27 +40,19 @@ export function LeaderboardPage() {
   return (
     <div className="space-y-6">
       {/* Hero header */}
-      <div className="text-center pt-6 pb-4 animate-fade-up beer-foam-top">
-        <div className="flex items-center justify-center gap-4">
-          <Beer className="h-8 w-8 text-beer -scale-x-100" style={{ filter: 'drop-shadow(0 0 10px oklch(0.78 0.17 75 / 0.6))' }} />
-          <h1 className="font-display text-5xl text-primary tracking-wider text-glow">
-            Mats Games
-          </h1>
-          <Beer className="h-8 w-8 text-beer" style={{ filter: 'drop-shadow(0 0 10px oklch(0.78 0.17 75 / 0.6))' }} />
-        </div>
-        <div className="flex items-center justify-center gap-3 mt-2">
-          <div className="h-px w-12 bg-gradient-to-r from-transparent to-beer/50" />
-          <p className="text-sm text-muted-foreground italic tracking-wide">
-            Mats drekkes ut
-          </p>
-          <div className="h-px w-12 bg-gradient-to-l from-transparent to-beer/50" />
-        </div>
+      <div className="text-center pt-8 pb-2 animate-fade-up">
+        <h1 className="font-display text-4xl tracking-tight">
+          Mats Games
+        </h1>
+        <p className="text-sm text-muted-foreground mt-2">
+          Mats drekkes ut
+        </p>
       </div>
 
       {entries.length === 0 ? (
         <Card className="animate-fade-up">
           <CardContent className="py-8 text-center text-muted-foreground">
-            Ingen poeng delt ut enna. La lekene begynne!
+            Ingen poeng delt ut ennå. La lekene begynne!
           </CardContent>
         </Card>
       ) : (
@@ -172,11 +164,10 @@ function LeaderboardRow({ entry, index }: { entry: LeaderboardEntryWithDelta; in
           <div className="flex items-baseline gap-1.5">
             <AnimatedNumber
               value={entry.total_points}
-              className="font-display text-2xl tracking-wider text-primary"
+              className="font-display text-2xl tracking-tight"
             />
-            <span className="inline-flex items-center gap-0.5 text-xs text-muted-foreground font-medium">
+            <span className="text-xs text-muted-foreground font-medium">
               MM
-              <Beer className="h-3 w-3 text-beer" />
             </span>
           </div>
         </div>

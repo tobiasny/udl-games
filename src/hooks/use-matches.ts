@@ -58,5 +58,22 @@ export function useMatches(activityId: string) {
     await fetchMatches()
   }
 
-  return { matches, matchPlayers, loading, setMatchResult, deleteMatch, refetch: fetchMatches }
+  const clearMatchResult = async (matchId: string) => {
+    const { error } = await supabase.rpc('clear_match_result', {
+      token_input: sessionToken,
+      match_id_input: matchId,
+    })
+    if (error) throw error
+    await fetchMatches()
+  }
+
+  return {
+    matches,
+    matchPlayers,
+    loading,
+    setMatchResult,
+    clearMatchResult,
+    deleteMatch,
+    refetch: fetchMatches,
+  }
 }

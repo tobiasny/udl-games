@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, Play, CheckCircle, Trash2, Shuffle } from 'lucide-react'
+import { ArrowLeft, Play, CheckCircle, Trash2, Shuffle, Undo2 } from 'lucide-react'
 import {
   ACTIVITY_TYPE_LABELS,
   ACTIVITY_FORMAT_LABELS,
@@ -34,7 +34,7 @@ export function ActivityDetailPage() {
   const navigate = useNavigate()
   const { sessionToken } = useAuth()
   const { updateActivityStatus, deleteActivity } = useActivities()
-  const { matches, matchPlayers, setMatchResult, deleteMatch, refetch: refetchMatches } = useMatches(id!)
+  const { matches, matchPlayers, setMatchResult, clearMatchResult, deleteMatch, refetch: refetchMatches } = useMatches(id!)
   const { points, savePoints } = usePoints(id!)
 
   const [activity, setActivity] = useState<Activity | null>(null)
@@ -54,7 +54,7 @@ export function ActivityDetailPage() {
       await fn()
     } catch (e) {
       console.error(label, e)
-      setActionError(`${label} feilet. Prov igjen.`)
+      setActionError(`${label} feilet. Prøv igjen.`)
     }
   }
 
@@ -147,6 +147,10 @@ export function ActivityDetailPage() {
 
   const activeContestants = contestants.filter((c) => activityContestantIds.includes(c.id))
   const contestantMap = new Map(contestants.map((c) => [c.id, c]))
+  // Once an activity is completed, the team composition / bracket is frozen.
+  // We hide the generate / reshuffle controls so the admin can't accidentally
+  // wipe out the matches that have already been awarded points.
+  const isCompleted = activity.status === 'completed'
 
   function getPlayerName(id: string): string {
     return contestantMap.get(id)?.name ?? 'Ukjent'
@@ -175,7 +179,7 @@ export function ActivityDetailPage() {
   // are only persisted to the leaderboard at this moment. If savePoints
   // throws, the activity is NOT marked completed.
   function handleCompleteAndAward() {
-    void runAction('Fullforing', async () => {
+    void runAction('Fullføring', async () => {
       const data = activityContestantIds.map((cId) => ({
         contestant_id: cId,
         amount: pointValues[cId] ?? 0,
@@ -273,6 +277,22 @@ export function ActivityDetailPage() {
     })
   }
 
+  // Undo an individual match/round/bracket result. For brackets the RPC
+  // cascades the reset through any downstream matches that pulled players
+  // from this one, so the admin can confirm before wiping out propagated
+  // results.
+  function handleClearMatchResult(matchId: string) {
+    const m = matches.find((mm) => mm.id === matchId)
+    const isBracket = m?.bracket != null
+    const msg = isBracket
+      ? 'Tilbakestille resultatet for denne kampen? Alle påfølgende bracket-kamper som bygger på dette resultatet blir også tilbakestilt.'
+      : 'Tilbakestille resultatet for denne kampen?'
+    if (!window.confirm(msg)) return
+    void runAction('Tilbakestilling av resultat', async () => {
+      await clearMatchResult(matchId)
+    })
+  }
+
   // Save a full set of placements for a multi-team match. The UI enforces
   // uniqueness, so by the time this fires every team has a distinct 1..4.
   async function setMatchPlacements(matchId: string, placements: Record<number, number>) {
@@ -345,7 +365,7 @@ export function ActivityDetailPage() {
   const BRACKET_LABELS: Record<string, string> = {
     winners: 'Vinnerbracket',
     losers: 'Taperbracket',
-    grand_final: 'Storfinal',
+    grand_final: 'Storfinale',
   }
 
   return (
@@ -388,14 +408,14 @@ export function ActivityDetailPage() {
               size="sm"
               onClick={handleCompleteAndAward}
               disabled={!allMatchesComplete}
-              title={allMatchesComplete ? undefined : 'Alle kamper ma vaere ferdig'}
+              title={allMatchesComplete ? undefined : 'Alle kamper må være ferdig'}
             >
-              <CheckCircle className="h-4 w-4 mr-1" /> Fullfor og tildel poeng
+              <CheckCircle className="h-4 w-4 mr-1" /> Fullfør og tildel poeng
             </Button>
           )}
           {activity.status === 'completed' && (
             <Button size="sm" variant="outline" onClick={() => handleStatusChange('in_progress')}>
-              Gjenapne
+              Gjenåpne
             </Button>
           )}
           <Button
@@ -427,7 +447,7 @@ export function ActivityDetailPage() {
           <CardHeader className="py-3">
             <CardTitle className="text-sm">Rangering & Poeng</CardTitle>
             <p className="text-xs text-muted-foreground">
-              Foreslatte poeng oppdateres automatisk fra rangeringen. Lagres nar du fullforer aktiviteten.
+              Foreslåtte poeng oppdateres automatisk fra rangeringen. Lagres når du fullfører aktiviteten.
             </p>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -466,11 +486,11 @@ export function ActivityDetailPage() {
       {/* Round Robin */}
       {activity.format === 'round_robin' && (
         <>
-          {matches.length === 0 && (
+          {matches.length === 0 && !isCompleted && (
             <Card>
               <CardContent className="py-4 space-y-2">
                 <p className="text-sm text-muted-foreground">
-                  Genererer inntil {activity.num_rounds || '?'} kamper basert pa innstillinger fra opprettelsen.
+                  Genererer inntil {activity.num_rounds || '?'} kamper basert på innstillinger fra opprettelsen.
                 </p>
                 <Button size="sm" onClick={handleGenerateRoundRobin}>
                   <Shuffle className="h-4 w-4 mr-1" /> Generer kamper
@@ -494,6 +514,7 @@ export function ActivityDetailPage() {
                       players={matchPlayers.filter((mp) => mp.match_id === m.id)}
                       getPlayerName={getPlayerName}
                       onResult={setMatchResult}
+                      onClear={handleClearMatchResult}
                       onDelete={deleteMatch}
                     />
                   ))}
@@ -506,7 +527,7 @@ export function ActivityDetailPage() {
       {/* Double Elimination */}
       {activity.format === 'double_elimination' && (
         <>
-          {matches.length === 0 && (
+          {matches.length === 0 && !isCompleted && (
             <Card>
               <CardContent className="py-4">
                 <Button size="sm" onClick={handleGenerateDoubleElim}>
@@ -536,6 +557,7 @@ export function ActivityDetailPage() {
                         players={matchPlayers.filter((mp) => mp.match_id === m.id)}
                         getPlayerName={getPlayerName}
                         onResult={setMatchResult}
+                        onClear={handleClearMatchResult}
                         onDelete={deleteMatch}
                       />
                     ))}
@@ -549,19 +571,21 @@ export function ActivityDetailPage() {
       {/* Team Battle */}
       {activity.format === 'team_battle' && (
         <>
-          <Card>
-            <CardContent className="py-4 space-y-2">
-              <p className="text-sm text-muted-foreground">
-                {matches.length === 0
-                  ? `Spillerne deles tilfeldig i to lag. ${activity.num_rounds || 1} kamp${(activity.num_rounds || 1) === 1 ? '' : 'er'} mellom lagene.`
-                  : 'Klikk for a omfordele lagene tilfeldig (sletter eksisterende kamper).'}
-              </p>
-              <Button size="sm" onClick={handleGenerateTeamBattle}>
-                <Shuffle className="h-4 w-4 mr-1" />
-                {matches.length === 0 ? 'Generer lagkamper' : 'Omfordel lag'}
-              </Button>
-            </CardContent>
-          </Card>
+          {!isCompleted && (
+            <Card>
+              <CardContent className="py-4 space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  {matches.length === 0
+                    ? `Spillerne deles tilfeldig i to lag. ${activity.num_rounds || 1} kamp${(activity.num_rounds || 1) === 1 ? '' : 'er'} mellom lagene.`
+                    : 'Klikk for å omfordele lagene tilfeldig (sletter eksisterende kamper).'}
+                </p>
+                <Button size="sm" onClick={handleGenerateTeamBattle}>
+                  <Shuffle className="h-4 w-4 mr-1" />
+                  {matches.length === 0 ? 'Generer lagkamper' : 'Omfordel lag'}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
           {matches.length > 0 && (() => {
             const refMatch = matches[0]
@@ -598,6 +622,7 @@ export function ActivityDetailPage() {
                     players={matchPlayers.filter((mp) => mp.match_id === m.id)}
                     getPlayerName={getPlayerName}
                     onResult={setMatchResult}
+                    onClear={handleClearMatchResult}
                     onDelete={deleteMatch}
                   />
                 ))}
@@ -610,19 +635,21 @@ export function ActivityDetailPage() {
       {/* Multi-team battle (2v2v2v2) */}
       {activity.format === 'multi_team_battle' && (
         <>
-          <Card>
-            <CardContent className="py-4 space-y-2">
-              <p className="text-sm text-muted-foreground">
-                {matches.length === 0
-                  ? `Spillerne deles tilfeldig i 4 lag. ${activity.num_rounds || 1} runde${(activity.num_rounds || 1) === 1 ? '' : 'r'} der alle lag konkurrerer mot hverandre.`
-                  : 'Klikk for a omfordele lagene tilfeldig (sletter eksisterende kamper).'}
-              </p>
-              <Button size="sm" onClick={handleGenerateMultiTeam}>
-                <Shuffle className="h-4 w-4 mr-1" />
-                {matches.length === 0 ? 'Generer lag' : 'Omfordel lag'}
-              </Button>
-            </CardContent>
-          </Card>
+          {!isCompleted && (
+            <Card>
+              <CardContent className="py-4 space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  {matches.length === 0
+                    ? `Spillerne deles tilfeldig i 4 lag. ${activity.num_rounds || 1} runde${(activity.num_rounds || 1) === 1 ? '' : 'r'} der alle lag konkurrerer mot hverandre.`
+                    : 'Klikk for å omfordele lagene tilfeldig (sletter eksisterende kamper).'}
+                </p>
+                <Button size="sm" onClick={handleGenerateMultiTeam}>
+                  <Shuffle className="h-4 w-4 mr-1" />
+                  {matches.length === 0 ? 'Generer lag' : 'Omfordel lag'}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
           {matches.length > 0 && (() => {
             const refMatch = matches[0]
@@ -662,6 +689,7 @@ export function ActivityDetailPage() {
                     match={m}
                     label={`Runde ${i + 1}`}
                     onSave={(placements) => setMatchPlacements(m.id, placements)}
+                    onClear={handleClearMatchResult}
                   />
                 ))}
               </CardContent>
@@ -676,7 +704,7 @@ export function ActivityDetailPage() {
           <CardHeader className="py-3">
             <CardTitle className="text-sm">Poeng (Mats Munny)</CardTitle>
             <p className="text-xs text-muted-foreground">
-              Foreslatte poeng er regnet ut fra resultatene. Lagres nar du fullforer aktiviteten.
+              Foreslåtte poeng er regnet ut fra resultatene. Lagres når du fullfører aktiviteten.
             </p>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -711,6 +739,7 @@ function MatchRow({
   players,
   getPlayerName,
   onResult,
+  onClear,
   onDelete,
   label,
 }: {
@@ -718,6 +747,7 @@ function MatchRow({
   players: MatchPlayer[]
   getPlayerName: (id: string) => string
   onResult: (matchId: string, winningTeam: number) => void
+  onClear: (matchId: string) => void
   onDelete: (matchId: string) => void
   label?: string
 }) {
@@ -745,7 +775,18 @@ function MatchRow({
         </div>
       )}
       {match.status === 'completed' && (
-        <Badge variant="secondary" className="text-xs">Ferdig</Badge>
+        <>
+          <Badge variant="secondary" className="text-xs">Ferdig</Badge>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7"
+            title="Tilbakestill resultat"
+            onClick={() => onClear(match.id)}
+          >
+            <Undo2 className="h-3 w-3" />
+          </Button>
+        </>
       )}
       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onDelete(match.id)}>
         <Trash2 className="h-3 w-3" />
@@ -761,10 +802,12 @@ function MultiTeamMatchRow({
   match,
   label,
   onSave,
+  onClear,
 }: {
   match: Match
   label: string
   onSave: (placements: Record<number, number>) => void | Promise<void>
+  onClear: (matchId: string) => void
 }) {
   // team -> placement
   const initial = useMemo<Record<number, number>>(() => {
@@ -811,7 +854,18 @@ function MultiTeamMatchRow({
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold text-muted-foreground">{label}</span>
         {match.status === 'completed' && !isDirty && (
-          <Badge variant="secondary" className="text-xs">Ferdig</Badge>
+          <div className="flex items-center gap-1">
+            <Badge variant="secondary" className="text-xs">Ferdig</Badge>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7"
+              title="Tilbakestill plassering"
+              onClick={() => onClear(match.id)}
+            >
+              <Undo2 className="h-3 w-3" />
+            </Button>
+          </div>
         )}
       </div>
       <div className="space-y-1.5">

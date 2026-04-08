@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
-import { Trophy, Users, Gamepad2, LogIn, LogOut, Settings, Eye, History, Beer, Sparkles } from 'lucide-react'
+import { Trophy, Users, Gamepad2, LogIn, LogOut, Settings, Eye, History, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -21,13 +21,12 @@ export function Header() {
   ]
 
   return (
-    <header className="sticky top-0 z-50 border-b border-primary/10 bg-background/70 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
       <div className="container mx-auto px-4 max-w-2xl">
         <div className="flex h-14 items-center justify-between">
           <nav className="flex items-center gap-0.5">
             <Link to="/" className="flex items-center gap-1.5 mr-3 hover:opacity-80 transition-opacity">
-              <Beer className="h-5 w-5 text-beer" style={{ filter: 'drop-shadow(0 0 6px oklch(0.78 0.17 75 / 0.6))' }} />
-              <span className="font-display text-xl text-primary tracking-widest text-glow">MG</span>
+              <span className="font-display text-lg tracking-widest">MG</span>
             </Link>
             {publicNav.map(({ to, label, icon: Icon }) => {
               const active = location.pathname === to
@@ -73,7 +72,7 @@ export function Header() {
             })}
             {isAdmin && (
               <Link to="/rebus/run" target="_blank">
-                <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-primary" title="Apne rebus-visning (ny fane)">
+                <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-primary" title="Åpne rebus-visning (ny fane)">
                   <Eye className="h-4 w-4" />
                   <span className="hidden sm:inline">Rebus-vis</span>
                 </Button>

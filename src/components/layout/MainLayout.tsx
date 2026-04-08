@@ -3,9 +3,9 @@ import { Header } from './Header'
 
 export function MainLayout() {
   return (
-    <div className="bg-bubbles min-h-screen">
+    <div className="min-h-screen bg-background">
       <Header />
-      <main className="container mx-auto px-4 py-6 max-w-2xl relative z-10">
+      <main className="container mx-auto px-4 py-6 max-w-2xl">
         <Outlet />
       </main>
     </div>

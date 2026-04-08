@@ -85,10 +85,14 @@ export function computeBracketRanking(matches: Match[], matchPlayers: MatchPlaye
   return ranks
 }
 
-// Team battle: two fixed teams play N matches against each other. Points are
-// based on which team won more matches; on a tie both teams get the average.
-// The team rosters are read from the first match's match_players, since every
-// match in a team_battle activity shares the same split.
+// Team battle: two fixed teams play N matches against each other. Every round
+// independently awards 4 points to each winner and 1 point to each loser, and
+// a player's total is the sum across all completed rounds. The team rosters
+// are read from the first match's match_players, since every match in a
+// team_battle activity shares the same split.
+export const TEAM_BATTLE_WIN_POINTS = 4
+export const TEAM_BATTLE_LOSS_POINTS = 1
+
 export function computeTeamBattlePoints(
   matches: Match[],
   matchPlayers: MatchPlayer[]
@@ -99,26 +103,61 @@ export function computeTeamBattlePoints(
   const team2 = playersOf(matchPlayers, refMatch.id, 2)
   if (team1.length === 0 || team2.length === 0) return {}
 
-  let wins1 = 0
-  let wins2 = 0
+  let team1Points = 0
+  let team2Points = 0
   matches
     .filter((m) => m.status === 'completed' && m.winning_team != null)
     .forEach((m) => {
-      if (m.winning_team === 1) wins1++
-      else if (m.winning_team === 2) wins2++
+      if (m.winning_team === 1) {
+        team1Points += TEAM_BATTLE_WIN_POINTS
+        team2Points += TEAM_BATTLE_LOSS_POINTS
+      } else if (m.winning_team === 2) {
+        team2Points += TEAM_BATTLE_WIN_POINTS
+        team1Points += TEAM_BATTLE_LOSS_POINTS
+      }
     })
 
-  const scale = suggestFreeForAllPoints(2) // [4, 2]
   const out: Record<string, number> = {}
-  if (wins1 === wins2) {
-    const avg = Math.round((scale[0] + scale[1]) / 2)
-    ;[...team1, ...team2].forEach((id) => { out[id] = avg })
-  } else {
-    const winners = wins1 > wins2 ? team1 : team2
-    const losers = wins1 > wins2 ? team2 : team1
-    winners.forEach((id) => { out[id] = scale[0] })
-    losers.forEach((id) => { out[id] = scale[1] })
+  team1.forEach((id) => { out[id] = team1Points })
+  team2.forEach((id) => { out[id] = team2Points })
+  return out
+}
+
+// Multi-team battle: 4 fixed teams play N rounds; each round records a 1..4
+// placement per team. Each round awards suggestFreeForAllPoints(4) = [6,4,2,1]
+// to the four teams by placement, and a player's total is the sum across all
+// completed rounds. The rosters live in the first match's match_players.
+export function computeMultiTeamBattlePoints(
+  matches: Match[],
+  matchPlayers: MatchPlayer[]
+): Record<string, number> {
+  if (matches.length === 0) return {}
+  const refMatch = matches[0]
+  const teamRosters: Record<number, string[]> = {}
+  for (let t = 1; t <= 4; t++) {
+    teamRosters[t] = playersOf(matchPlayers, refMatch.id, t)
   }
+
+  const scale = suggestFreeForAllPoints(4) // [6, 4, 2, 1]
+  const out: Record<string, number> = {}
+  for (let t = 1; t <= 4; t++) {
+    teamRosters[t].forEach((id) => { out[id] = 0 })
+  }
+
+  matches
+    .filter((m) => m.status === 'completed' && m.team_placements)
+    .forEach((m) => {
+      const placements = m.team_placements as Record<string, number>
+      for (let t = 1; t <= 4; t++) {
+        const placement = placements[String(t)]
+        if (!placement || placement < 1 || placement > 4) continue
+        const pts = scale[placement - 1] ?? 0
+        teamRosters[t].forEach((id) => {
+          out[id] = (out[id] ?? 0) + pts
+        })
+      }
+    })
+
   return out
 }
 

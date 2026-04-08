@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import { Radio, Trophy, History, User } from 'lucide-react'
 
 export function ActivityHistoryPage() {
-  const { completed, current, loading } = useActivityHistory()
+  const { completed, currents, loading } = useActivityHistory()
 
   if (loading) {
     return <div className="text-center py-12 text-muted-foreground">Laster...</div>
@@ -25,15 +25,21 @@ export function ActivityHistoryPage() {
         </p>
       </div>
 
-      {/* Current activity */}
-      {current && (
+      {/* Current activities — may be several in parallel */}
+      {currents.length > 0 && (
         <section className="space-y-3 animate-fade-up" style={{ animationDelay: '80ms' }}>
           <div className="flex items-center gap-2 px-1">
             <Radio className="h-4 w-4 text-primary animate-pulse" />
-            <h2 className="font-display text-sm tracking-widest text-primary">Pagar na</h2>
+            <h2 className="font-display text-sm tracking-widest text-primary">
+              {currents.length === 1 ? 'Pagar na' : `Pagar na (${currents.length})`}
+            </h2>
             <div className="flex-1 h-px bg-gradient-to-r from-primary/40 to-transparent" />
           </div>
-          <CurrentActivityCard data={current} />
+          <div className="space-y-3">
+            {currents.map((c) => (
+              <CurrentActivityCard key={c.activity.id} data={c} />
+            ))}
+          </div>
         </section>
       )}
 

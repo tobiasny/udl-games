@@ -1,5 +1,11 @@
-export type ActivityType = 'free_for_all' | '1v1' | '2v2' | '3v3' | '4v4'
-export type ActivityFormat = 'free_for_all' | 'round_robin' | 'double_elimination' | 'team_battle'
+export type ActivityType = 'free_for_all' | '1v1' | '2v2' | '3v3' | '4v4' | '2v2v2v2' | 'event'
+export type ActivityFormat =
+  | 'free_for_all'
+  | 'round_robin'
+  | 'double_elimination'
+  | 'team_battle'
+  | 'multi_team_battle'
+  | 'event'
 export type ActivityStatus = 'draft' | 'in_progress' | 'completed'
 export type MatchStatus = 'pending' | 'in_progress' | 'completed'
 export type BracketType = 'winners' | 'losers' | 'grand_final'
@@ -42,6 +48,9 @@ export interface Match {
   team2_source_from: 'winner' | 'loser' | null
   status: MatchStatus
   winning_team: number | null
+  // Multi-team battle only: { "1": placement, "2": placement, ... } where
+  // placement is 1..4 (1 = best). Null for regular two-team matches.
+  team_placements: Record<string, number> | null
   created_at: string
 }
 

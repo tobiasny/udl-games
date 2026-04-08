@@ -9,10 +9,12 @@ import { Badge } from '@/components/ui/badge'
 import { Gamepad2, Plus, ChevronRight, Trash2 } from 'lucide-react'
 import {
   VALID_FORMATS,
+  SELECTABLE_ACTIVITY_TYPES,
   ACTIVITY_TYPE_LABELS,
   ACTIVITY_FORMAT_LABELS,
   STATUS_LABELS,
   TEAM_SIZES,
+  MULTI_TEAM_COUNT,
 } from '@/lib/constants'
 import { countAllRoundRobinMatches } from '@/lib/algorithms/round-robin'
 import type { ActivityType, ActivityFormat } from '@/lib/types'
@@ -38,7 +40,15 @@ export function ActivitiesPage() {
     return countAllRoundRobinMatches(selectedContestants.length, TEAM_SIZES[type])
   }, [format, type, selectedContestants.length])
 
-  const showRoundCount = format === 'round_robin' || format === 'team_battle'
+  const showRoundCount =
+    format === 'round_robin' || format === 'team_battle' || format === 'multi_team_battle'
+
+  // Minimum participant count per format. The form just blocks submission
+  // below this; it doesn't reshuffle the roster for you.
+  const minParticipants = format === 'multi_team_battle' ? MULTI_TEAM_COUNT * TEAM_SIZES[type] : 1
+
+  // Hide events from the admin activity list -- they live on /admin/events.
+  const visibleActivities = activities.filter((a) => a.type !== 'event')
 
   function handleTypeChange(newType: ActivityType) {
     setType(newType)
@@ -60,7 +70,7 @@ export function ActivitiesPage() {
       }
       return Math.min(parsed, allRoundRobinCount || parsed)
     }
-    if (format === 'team_battle') {
+    if (format === 'team_battle' || format === 'multi_team_battle') {
       if (!roundCountInput.trim() || isNaN(parsed) || parsed <= 0) return 1
       return parsed
     }
@@ -70,6 +80,10 @@ export function ActivitiesPage() {
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
     if (!name.trim() || selectedContestants.length === 0) return
+    if (selectedContestants.length < minParticipants) {
+      setError(`Trenger minst ${minParticipants} deltakere for dette formatet`)
+      return
+    }
     setError('')
     try {
       await addActivity(name.trim(), type, format, selectedContestants, resolveNumRounds())
@@ -136,7 +150,7 @@ export function ActivitiesPage() {
               <div>
                 <label className="text-sm font-medium mb-1 block">Type</label>
                 <div className="flex flex-wrap gap-1">
-                  {(Object.keys(ACTIVITY_TYPE_LABELS) as ActivityType[]).map((t) => (
+                  {SELECTABLE_ACTIVITY_TYPES.map((t) => (
                     <Button
                       key={t}
                       type="button"
@@ -223,6 +237,12 @@ export function ActivitiesPage() {
                       Spillerne deles tilfeldig i to lag som spiller mot hverandre.
                     </p>
                   )}
+                  {format === 'multi_team_battle' && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Spillerne deles tilfeldig i 4 lag (2 per lag). Alle lag konkurrerer
+                      mot hverandre hver runde. Trenger minst {MULTI_TEAM_COUNT * TEAM_SIZES[type]} deltakere.
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -240,7 +260,7 @@ export function ActivitiesPage() {
       )}
 
       <div className="space-y-2">
-        {activities.map((a) => (
+        {visibleActivities.map((a) => (
           <Link key={a.id} to={`/admin/activities/${a.id}`}>
             <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
               <CardContent className="flex items-center justify-between py-3 px-4">
@@ -277,7 +297,7 @@ export function ActivitiesPage() {
             </Card>
           </Link>
         ))}
-        {activities.length === 0 && (
+        {visibleActivities.length === 0 && (
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground">
               Ingen aktiviteter enna. Opprett en ovenfor!

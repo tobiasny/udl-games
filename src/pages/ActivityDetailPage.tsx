@@ -22,6 +22,7 @@ import {
   computeBracketRanking,
   computeRoundRobinRanking,
   computeTeamBattlePoints,
+  computeMultiTeamBattlePoints,
   rankingToPoints,
 } from '@/lib/algorithms/ranking'
 import { generateRoundRobin } from '@/lib/algorithms/round-robin'
@@ -91,11 +92,17 @@ export function ActivityDetailPage() {
   }, [activity, activityContestantIds, freeForAllRankings.length])
 
   // True when there are no outstanding matches blocking results. Free-for-all
-  // has no matches, so it's always "ready" once a ranking exists.
+  // has no matches, so it's always "ready" once a ranking exists. Multi-team
+  // battle also needs placements set, not just status=completed (the status
+  // flip happens in the placement RPC so in practice these line up).
   const allMatchesComplete = useMemo(() => {
     if (!activity) return false
     if (activity.format === 'free_for_all') return freeForAllRankings.length > 0
-    return matches.length > 0 && matches.every((m) => m.status === 'completed')
+    if (matches.length === 0) return false
+    if (activity.format === 'multi_team_battle') {
+      return matches.every((m) => m.status === 'completed' && m.team_placements != null)
+    }
+    return matches.every((m) => m.status === 'completed')
   }, [activity, matches, freeForAllRankings.length])
 
   // True for the few formats that record actual matches in the matches table.
@@ -115,6 +122,9 @@ export function ActivityDetailPage() {
     if (!allMatchesComplete) return {}
     if (activity.format === 'team_battle') {
       return computeTeamBattlePoints(matches, matchPlayers)
+    }
+    if (activity.format === 'multi_team_battle') {
+      return computeMultiTeamBattlePoints(matches, matchPlayers)
     }
     const ranks =
       activity.format === 'round_robin'
@@ -231,6 +241,46 @@ export function ActivityDetailPage() {
         token_input: sessionToken,
         activity_id_input: id!,
         matches_data: matchesData,
+      })
+      if (error) throw error
+      await refetchMatches()
+    })
+  }
+
+  // Multi-team battle: shuffle the roster, distribute into 4 teams round-robin
+  // style (player i -> team i%4) so the teams stay balanced when the roster
+  // size isn't a multiple of 4. Then create N matches all sharing those 4
+  // teams. Re-clicking reshuffles, same as team_battle.
+  function handleGenerateMultiTeam() {
+    void runAction('Generering av 4-lags kamper', async () => {
+      const shuffled = shuffle(activityContestantIds)
+      const teams: string[][] = [[], [], [], []]
+      shuffled.forEach((id, i) => {
+        teams[i % 4].push(id)
+      })
+      if (teams.some((t) => t.length === 0)) {
+        throw new Error('Trenger minst 4 spillere for 4-lags kamp')
+      }
+      const numRounds = Math.max(1, activity!.num_rounds || 1)
+      const { error } = await supabase.rpc('create_multi_team_matches', {
+        token_input: sessionToken,
+        activity_id_input: id!,
+        teams,
+        num_rounds: numRounds,
+      })
+      if (error) throw error
+      await refetchMatches()
+    })
+  }
+
+  // Save a full set of placements for a multi-team match. The UI enforces
+  // uniqueness, so by the time this fires every team has a distinct 1..4.
+  async function setMatchPlacements(matchId: string, placements: Record<number, number>) {
+    await runAction('Lagring av plassering', async () => {
+      const { error } = await supabase.rpc('set_match_placements', {
+        token_input: sessionToken,
+        match_id_input: matchId,
+        placements_input: placements,
       })
       if (error) throw error
       await refetchMatches()
@@ -557,6 +607,69 @@ export function ActivityDetailPage() {
         </>
       )}
 
+      {/* Multi-team battle (2v2v2v2) */}
+      {activity.format === 'multi_team_battle' && (
+        <>
+          <Card>
+            <CardContent className="py-4 space-y-2">
+              <p className="text-sm text-muted-foreground">
+                {matches.length === 0
+                  ? `Spillerne deles tilfeldig i 4 lag. ${activity.num_rounds || 1} runde${(activity.num_rounds || 1) === 1 ? '' : 'r'} der alle lag konkurrerer mot hverandre.`
+                  : 'Klikk for a omfordele lagene tilfeldig (sletter eksisterende kamper).'}
+              </p>
+              <Button size="sm" onClick={handleGenerateMultiTeam}>
+                <Shuffle className="h-4 w-4 mr-1" />
+                {matches.length === 0 ? 'Generer lag' : 'Omfordel lag'}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {matches.length > 0 && (() => {
+            const refMatch = matches[0]
+            const teams = [1, 2, 3, 4].map((t) =>
+              matchPlayers
+                .filter((mp) => mp.match_id === refMatch.id && mp.team === t)
+                .map((mp) => getPlayerName(mp.contestant_id))
+            )
+            return (
+              <Card>
+                <CardHeader className="py-2">
+                  <CardTitle className="text-sm">Lag</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1 text-sm">
+                  {teams.map((names, i) => (
+                    <div key={i}>
+                      <span className="font-bold">Lag {i + 1}:</span> {names.join(', ') || '—'}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )
+          })()}
+
+          {matches.length > 0 && (
+            <Card>
+              <CardHeader className="py-2">
+                <CardTitle className="text-sm">Runder</CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Velg plassering (1-4) per lag for hver runde.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {matches.map((m, i) => (
+                  <MultiTeamMatchRow
+                    key={m.id}
+                    match={m}
+                    label={`Runde ${i + 1}`}
+                    onSave={(placements) => setMatchPlacements(m.id, placements)}
+                  />
+                ))}
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
+
       {/* Points section for team games -- only after all matches are done */}
       {hasMatches && matches.length > 0 && allMatchesComplete && (
         <Card>
@@ -637,6 +750,100 @@ function MatchRow({
       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onDelete(match.id)}>
         <Trash2 className="h-3 w-3" />
       </Button>
+    </div>
+  )
+}
+
+// Placement picker for a single multi-team (2v2v2v2) round. The admin picks a
+// 1..4 placement for each team; clicking a placement that's already taken by
+// another team swaps the two. "Lagre" commits the choices via the set_match_placements RPC.
+function MultiTeamMatchRow({
+  match,
+  label,
+  onSave,
+}: {
+  match: Match
+  label: string
+  onSave: (placements: Record<number, number>) => void | Promise<void>
+}) {
+  // team -> placement
+  const initial = useMemo<Record<number, number>>(() => {
+    const out: Record<number, number> = {}
+    if (match.team_placements) {
+      for (const [teamStr, place] of Object.entries(match.team_placements)) {
+        out[Number(teamStr)] = place as number
+      }
+    }
+    return out
+  }, [match.team_placements])
+  const [placements, setPlacements] = useState<Record<number, number>>(initial)
+
+  // Reset local state when the underlying match changes (e.g. reshuffle)
+  useEffect(() => {
+    setPlacements(initial)
+  }, [initial])
+
+  function setTeamPlace(team: number, place: number) {
+    setPlacements((prev) => {
+      const next: Record<number, number> = { ...prev }
+      // If another team already had this placement, swap with the team being updated
+      const existingTeamAtPlace = Object.entries(prev).find(
+        ([t, p]) => Number(t) !== team && p === place,
+      )
+      if (existingTeamAtPlace) {
+        const otherTeam = Number(existingTeamAtPlace[0])
+        if (prev[team] != null) {
+          next[otherTeam] = prev[team]
+        } else {
+          delete next[otherTeam]
+        }
+      }
+      next[team] = place
+      return next
+    })
+  }
+
+  const isComplete = [1, 2, 3, 4].every((t) => placements[t] != null)
+  const isDirty = JSON.stringify(placements) !== JSON.stringify(initial)
+
+  return (
+    <div className="border rounded-md p-3 space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold text-muted-foreground">{label}</span>
+        {match.status === 'completed' && !isDirty && (
+          <Badge variant="secondary" className="text-xs">Ferdig</Badge>
+        )}
+      </div>
+      <div className="space-y-1.5">
+        {[1, 2, 3, 4].map((team) => (
+          <div key={team} className="flex items-center gap-2">
+            <span className="text-sm w-12 shrink-0">Lag {team}</span>
+            <div className="flex gap-1">
+              {[1, 2, 3, 4].map((place) => (
+                <Button
+                  key={place}
+                  type="button"
+                  size="sm"
+                  variant={placements[team] === place ? 'default' : 'outline'}
+                  className="h-7 w-8 p-0 text-xs"
+                  onClick={() => setTeamPlace(team, place)}
+                >
+                  {place}
+                </Button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="flex justify-end">
+        <Button
+          size="sm"
+          disabled={!isComplete || !isDirty}
+          onClick={() => void onSave(placements)}
+        >
+          Lagre plassering
+        </Button>
+      </div>
     </div>
   )
 }

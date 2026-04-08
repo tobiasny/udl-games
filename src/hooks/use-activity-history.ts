@@ -15,7 +15,7 @@ export interface ActivityWithStandings {
 
 export function useActivityHistory() {
   const [completed, setCompleted] = useState<ActivityWithStandings[]>([])
-  const [current, setCurrent] = useState<ActivityWithStandings | null>(null)
+  const [currents, setCurrents] = useState<ActivityWithStandings[]>([])
   const [loading, setLoading] = useState(true)
 
   const fetchAll = useCallback(async () => {
@@ -66,13 +66,12 @@ export function useActivityHistory() {
       .filter((a) => a.status === 'completed')
       .map((a) => ({ activity: a, standings: standingsFor(a) }))
 
-    const inProgress = activities.find((a) => a.status === 'in_progress')
-    const currentData = inProgress
-      ? { activity: inProgress, standings: standingsFor(inProgress) }
-      : null
+    const currentList: ActivityWithStandings[] = activities
+      .filter((a) => a.status === 'in_progress')
+      .map((a) => ({ activity: a, standings: standingsFor(a) }))
 
     setCompleted(completedList)
-    setCurrent(currentData)
+    setCurrents(currentList)
     setLoading(false)
   }, [])
 
@@ -86,5 +85,5 @@ export function useActivityHistory() {
     return () => clearInterval(interval)
   }, [fetchAll])
 
-  return { completed, current, loading, refetch: fetchAll }
+  return { completed, currents, loading, refetch: fetchAll }
 }

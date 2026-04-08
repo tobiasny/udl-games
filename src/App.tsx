@@ -10,6 +10,7 @@ import { ContestantsPage } from '@/pages/ContestantsPage'
 import { RebusPage } from '@/pages/RebusPage'
 import { RebusAdminPage } from '@/pages/RebusAdminPage'
 import { ActivityHistoryPage } from '@/pages/ActivityHistoryPage'
+import { EventsPage } from '@/pages/EventsPage'
 
 export default function App() {
   const auth = useAuthProvider()
@@ -37,6 +38,10 @@ export default function App() {
             <Route
               path="/admin/contestants"
               element={<AdminGuard><ContestantsPage /></AdminGuard>}
+            />
+            <Route
+              path="/admin/events"
+              element={<AdminGuard><EventsPage /></AdminGuard>}
             />
             <Route
               path="/admin/rebus"

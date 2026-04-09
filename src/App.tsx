@@ -11,6 +11,8 @@ import { RebusPage } from '@/pages/RebusPage'
 import { RebusAdminPage } from '@/pages/RebusAdminPage'
 import { ActivityHistoryPage } from '@/pages/ActivityHistoryPage'
 import { EventsPage } from '@/pages/EventsPage'
+import { StatsPage } from '@/pages/StatsPage'
+import { PlayerProfilePage } from '@/pages/PlayerProfilePage'
 
 export default function App() {
   const auth = useAuthProvider()
@@ -26,6 +28,8 @@ export default function App() {
           <Route element={<MainLayout />}>
             <Route path="/" element={<LeaderboardPage />} />
             <Route path="/activities" element={<ActivityHistoryPage />} />
+            <Route path="/stats" element={<StatsPage />} />
+            <Route path="/players/:id" element={<PlayerProfilePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route
               path="/admin/activities"

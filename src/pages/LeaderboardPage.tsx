@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { useLeaderboard, type LeaderboardEntryWithDelta } from '@/hooks/use-leaderboard'
+import { useStats } from '@/hooks/use-stats'
 import { Card, CardContent } from '@/components/ui/card'
 import { AnimatedNumber } from '@/components/AnimatedNumber'
+import { RecentEventsFeed } from '@/components/stats/RecentEventsFeed'
+import { PredictionBlock } from '@/components/stats/PredictionBlock'
 import { cn } from '@/lib/utils'
 import { Crown, Medal, Award, TrendingUp, TrendingDown } from 'lucide-react'
 
@@ -32,13 +36,14 @@ function ordinal(n: number) {
 
 export function LeaderboardPage() {
   const { entries, loading } = useLeaderboard()
+  const stats = useStats({ pollInterval: 10000 })
 
   if (loading) {
     return <div className="text-center py-12 text-muted-foreground">Laster...</div>
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-8">
       {/* Hero header */}
       <div className="text-center pt-8 pb-2 animate-fade-up">
         <h1 className="font-display text-4xl tracking-tight">
@@ -62,6 +67,9 @@ export function LeaderboardPage() {
           ))}
         </div>
       )}
+
+      <PredictionBlock entries={entries} contestantStats={stats.contestantStats} />
+      <RecentEventsFeed events={stats.recentEvents} />
     </div>
   )
 }
@@ -90,9 +98,10 @@ function LeaderboardRow({ entry, index }: { entry: LeaderboardEntryWithDelta; in
   }, [entry.rankDelta, entry.rank])
 
   return (
+    <Link to={`/players/${entry.id}`}>
     <Card
       className={cn(
-        'transition-all hover:scale-[1.01] animate-fade-up',
+        'transition-all hover:scale-[1.01] animate-fade-up cursor-pointer',
         RANK_STYLES[entry.rank] ?? 'border-border',
         entry.pointsDelta > 0 && showDelta && 'ring-1 ring-primary/40'
       )}
@@ -173,5 +182,6 @@ function LeaderboardRow({ entry, index }: { entry: LeaderboardEntryWithDelta; in
         </div>
       </CardContent>
     </Card>
+    </Link>
   )
 }

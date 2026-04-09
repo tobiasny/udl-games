@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
-import { Trophy, Users, Gamepad2, LogIn, LogOut, Settings, Eye, History, Sparkles } from 'lucide-react'
+import { Trophy, Users, Gamepad2, LogIn, LogOut, Settings, Eye, History, Sparkles, BarChart2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -11,6 +11,7 @@ export function Header() {
   const publicNav = [
     { to: '/', label: 'Resultater', icon: Trophy },
     { to: '/activities', label: 'Aktiviteter', icon: History },
+    { to: '/stats', label: 'Statistikk', icon: BarChart2 },
   ]
 
   const adminNav = [

@@ -46,11 +46,14 @@
   --color-input: oklch(0.269 0 0);
   --color-ring: oklch(0.556 0 0);
 
-  --color-chart-1: oklch(0.81 0.10 252);
-  --color-chart-2: oklch(0.62 0.19 260);
-  --color-chart-3: oklch(0.55 0.22 263);
-  --color-chart-4: oklch(0.49 0.22 264);
-  --color-chart-5: oklch(0.42 0.18 266);
+  --color-chart-1: oklch(0.78 0.13 85);   /* gold */
+  --color-chart-2: oklch(0.70 0.19 150);  /* green */
+  --color-chart-3: oklch(0.65 0.22 30);   /* orange-red */
+  --color-chart-4: oklch(0.72 0.18 300);  /* purple */
+  --color-chart-5: oklch(0.80 0.10 200);  /* cyan */
+  --color-chart-6: oklch(0.75 0.16 340);  /* pink */
+  --color-chart-7: oklch(0.68 0.14 60);   /* amber */
+  --color-chart-8: oklch(0.72 0.12 240);  /* blue */
 
   --color-sidebar: oklch(0.269 0 0);
   --color-sidebar-foreground: oklch(0.985 0 0);

@@ -6,13 +6,16 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import {
   Plus, Trash2, RotateCcw, CheckCircle, XCircle, MapPin, Pencil,
-  X, Save, ChevronDown, ChevronUp, Flag,
+  X, Save, ChevronDown, ChevronUp, Flag, RefreshCw, Eye, QrCode, Copy, Check,
 } from 'lucide-react'
 import { parseLatLon } from '@/lib/geo'
+import QRCodeLib from 'qrcode'
+
+const REBUS_URL = 'https://udl-games.vercel.app/rebus/run'
 
 export function RebusAdminPage() {
   const {
-    tasks, settings, loading,
+    tasks, settings, loading, refetch,
     approveTask, rejectAnswer, markArrived, addTask, updateTask, deleteTask,
     resetAll, resetTask, setStart,
   } = useRebus()
@@ -20,16 +23,56 @@ export function RebusAdminPage() {
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [refreshing, setRefreshing] = useState(false)
+  const [showQR, setShowQR] = useState(false)
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  async function handleRefresh() {
+    setRefreshing(true)
+    await refetch()
+    setRefreshing(false)
+  }
+
+  async function handleShowQR() {
+    setShowQR(true)
+    if (!qrDataUrl) {
+      const url = await QRCodeLib.toDataURL(REBUS_URL, {
+        width: 280,
+        margin: 2,
+        color: { dark: '#ffffff', light: '#0a0a0a' },
+      })
+      setQrDataUrl(url)
+    }
+  }
+
+  function handleCopy() {
+    navigator.clipboard.writeText(REBUS_URL)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   if (loading) {
     return <div className="text-center py-12 text-muted-foreground">Laster...</div>
   }
 
   return (
+    <>
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-display tracking-wider">Rebus Admin</h1>
-        <div className="flex gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-xl font-display tracking-wider shrink-0">Rebus Admin</h1>
+        <div className="flex flex-wrap gap-2 justify-end">
+          <a href={REBUS_URL} target="_blank" rel="noreferrer">
+            <Button size="sm" variant="outline">
+              <Eye className="h-4 w-4 mr-1" /> Vis
+            </Button>
+          </a>
+          <Button size="sm" variant="outline" onClick={handleShowQR}>
+            <QrCode className="h-4 w-4 mr-1" /> QR
+          </Button>
+          <Button size="sm" variant="outline" onClick={handleRefresh} disabled={refreshing}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${refreshing ? 'animate-spin' : ''}`} /> Oppdater
+          </Button>
           <Button size="sm" variant="outline" onClick={() => { if (confirm('Tilbakestill alle oppgaver?')) resetAll() }}>
             <RotateCcw className="h-4 w-4 mr-1" /> Nullstill
           </Button>
@@ -100,6 +143,38 @@ export function RebusAdminPage() {
         )}
       </div>
     </div>
+
+    {/* QR modal */}
+    {showQR && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+        onClick={() => setShowQR(false)}
+      >
+        <div
+          className="bg-card border border-border rounded-2xl p-6 space-y-4 w-80 animate-fade-up"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between">
+            <h2 className="font-display tracking-wider">Rebus-lenke</h2>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowQR(false)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          {qrDataUrl ? (
+            <img src={qrDataUrl} alt="QR code" className="w-full rounded-lg" />
+          ) : (
+            <div className="w-full aspect-square bg-secondary rounded-lg animate-pulse" />
+          )}
+          <div className="flex items-center gap-2 bg-secondary rounded-lg px-3 py-2">
+            <span className="flex-1 font-mono text-xs text-muted-foreground truncate">{REBUS_URL}</span>
+            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={handleCopy}>
+              {copied ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
+            </Button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 }
 

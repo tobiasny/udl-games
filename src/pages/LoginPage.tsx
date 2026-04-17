@@ -14,7 +14,7 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false)
 
   if (isAdmin) {
-    navigate('/admin/activities', { replace: true })
+    navigate('/admin', { replace: true })
     return null
   }
 
@@ -25,7 +25,7 @@ export function LoginPage() {
     const success = await login(password)
     setLoading(false)
     if (success) {
-      navigate('/admin/activities', { replace: true })
+      navigate('/admin', { replace: true })
     } else {
       setError('Feil passord')
     }

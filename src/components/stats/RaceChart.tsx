@@ -22,7 +22,33 @@ const CHART_COLORS = [
   'var(--color-chart-8)',
 ]
 
-export function RaceChart({ stats }: { stats: StatsData }) {
+// Resolved hex/oklch colors for SVG text (CSS variables don't work on SVG fill)
+const CHART_COLORS_RESOLVED = [
+  '#c9a227', // gold-ish
+  '#10b981', // green
+  '#e34c26', // orange-red
+  '#a855f7', // purple
+  '#06b6d4', // cyan
+  '#f472b6', // pink
+  '#f59e0b', // amber
+  '#3b82f6', // blue
+]
+
+interface RaceChartProps {
+  stats: StatsData
+  height?: number | `${number}%`
+  fontSize?: number
+  strokeWidth?: number
+  inlineLabels?: boolean
+}
+
+export function RaceChart({
+  stats,
+  height = 300,
+  fontSize = 10,
+  strokeWidth = 2,
+  inlineLabels = false,
+}: RaceChartProps) {
   if (stats.loading) {
     return <div className="text-center py-12 text-muted-foreground">Laster...</div>
   }
@@ -47,7 +73,6 @@ export function RaceChart({ stats }: { stats: StatsData }) {
 
   const contestantMap = new Map(stats.contestants.map((c) => [c.id, c]))
 
-  // Shape data for recharts: array of { activityName, [contestant_id]: cumulative }
   const chartData = stats.raceData.map((point) => ({
     name: point.activityName,
     ...Object.fromEntries(
@@ -55,13 +80,23 @@ export function RaceChart({ stats }: { stats: StatsData }) {
     ),
   }))
 
+  const lastIndex = chartData.length - 1
+
+  // Right margin needs room for inline labels; estimate ~9px per char + padding
+  const maxNameLen = inlineLabels
+    ? Math.max(...activeContestantIds.map((id) => (contestantMap.get(id)?.name ?? '').length))
+    : 0
+  const rightMargin = inlineLabels ? maxNameLen * (fontSize * 0.65) + 12 : 8
+
   return (
-    <div className="space-y-2">
-      <p className="text-xs text-muted-foreground px-1">
-        Akkumulerte poeng etter hver aktivitet
-      </p>
-      <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={chartData} margin={{ top: 8, right: 8, left: -16, bottom: 40 }}>
+    <div className={inlineLabels ? undefined : 'space-y-2'}>
+      {!inlineLabels && (
+        <p className="text-xs text-muted-foreground px-1">
+          Akkumulerte poeng etter hver aktivitet
+        </p>
+      )}
+      <ResponsiveContainer width="100%" height={height}>
+        <LineChart data={chartData} margin={{ top: 8, right: rightMargin, left: -16, bottom: 40 }}>
           <CartesianGrid
             strokeDasharray="3 3"
             stroke="var(--color-border)"
@@ -69,14 +104,14 @@ export function RaceChart({ stats }: { stats: StatsData }) {
           />
           <XAxis
             dataKey="name"
-            tick={{ fill: 'var(--color-muted-foreground)', fontSize: 10 }}
+            tick={{ fill: 'var(--color-muted-foreground)', fontSize }}
             angle={-40}
             textAnchor="end"
             interval={0}
             height={60}
           />
           <YAxis
-            tick={{ fill: 'var(--color-muted-foreground)', fontSize: 10 }}
+            tick={{ fill: 'var(--color-muted-foreground)', fontSize }}
             unit=" MM"
           />
           <Tooltip
@@ -93,21 +128,52 @@ export function RaceChart({ stats }: { stats: StatsData }) {
               contestantMap.get(String(id))?.name ?? String(id),
             ]}
           />
-          <Legend
-            formatter={(id) => contestantMap.get(id)?.name ?? id}
-            wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }}
-          />
-          {activeContestantIds.map((id, i) => (
-            <Line
-              key={id}
-              type="monotone"
-              dataKey={id}
-              stroke={CHART_COLORS[i % CHART_COLORS.length]}
-              strokeWidth={2}
-              dot={{ r: 3, fill: CHART_COLORS[i % CHART_COLORS.length] }}
-              activeDot={{ r: 5 }}
+          {!inlineLabels && (
+            <Legend
+              formatter={(id) => contestantMap.get(id)?.name ?? id}
+              wrapperStyle={{ fontSize: fontSize + 2, paddingTop: '8px' }}
             />
-          ))}
+          )}
+          {activeContestantIds.map((id, i) => {
+            const color = inlineLabels
+              ? CHART_COLORS_RESOLVED[i % CHART_COLORS_RESOLVED.length]
+              : CHART_COLORS[i % CHART_COLORS.length]
+            const colorResolved = CHART_COLORS_RESOLVED[i % CHART_COLORS_RESOLVED.length]
+            const name = contestantMap.get(id)?.name ?? id
+            const r = strokeWidth + 1
+            return (
+              <Line
+                key={id}
+                type="monotone"
+                dataKey={id}
+                stroke={color}
+                strokeWidth={strokeWidth}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                dot={(props: any) => {
+                  const { cx, cy, index } = props
+                  if (inlineLabels && index === lastIndex) {
+                    return (
+                      <g key={`dot-${id}-${index}`}>
+                        <circle cx={cx} cy={cy} r={r} fill={colorResolved} />
+                        <text
+                          x={cx + r + 4}
+                          y={cy}
+                          fill={colorResolved}
+                          fontSize={fontSize}
+                          fontWeight="600"
+                          dominantBaseline="middle"
+                        >
+                          {name}
+                        </text>
+                      </g>
+                    )
+                  }
+                  return <circle key={`dot-${id}-${index}`} cx={cx} cy={cy} r={r} fill={colorResolved} />
+                }}
+                activeDot={{ r: strokeWidth + 3, fill: colorResolved }}
+              />
+            )
+          })}
         </LineChart>
       </ResponsiveContainer>
     </div>

@@ -13,7 +13,7 @@ import {
   estimateDriveMinutes,
   formatDuration,
 } from '@/lib/geo'
-import { MapPin, Send, CheckCircle, Clock, Sparkles, Navigation, Route, Car, Trophy, AlertOctagon, Wine } from 'lucide-react'
+import { MapPin, Send, CheckCircle, Clock, Sparkles, Navigation, Route, Car, Trophy, AlertOctagon, Wine, RefreshCw } from 'lucide-react'
 
 const INTRO_SEEN_KEY = 'rebus-intro-seen-v1'
 
@@ -86,6 +86,13 @@ export function RebusPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [viewKey, setViewKey] = useState(0)
+  const [refreshing, setRefreshing] = useState(false)
+
+  async function handleRefresh() {
+    setRefreshing(true)
+    await refetch()
+    setRefreshing(false)
+  }
 
   const [introDone, setIntroDone] = useState<boolean>(() => {
     try {
@@ -94,12 +101,6 @@ export function RebusPage() {
       return false
     }
   })
-
-  // Poll for updates every 5 seconds
-  useEffect(() => {
-    const interval = setInterval(refetch, 5000)
-    return () => clearInterval(interval)
-  }, [refetch])
 
   // Find the single "current" task
   const activeTask = tasks.find((t) => t.status === 'active')
@@ -212,6 +213,17 @@ export function RebusPage() {
           />
         </div>
       )}
+
+      {/* Refresh button — fixed bottom-right */}
+      <button
+        type="button"
+        onClick={handleRefresh}
+        disabled={refreshing}
+        className="absolute bottom-6 right-4 z-30 flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-card/80 backdrop-blur-sm font-mono text-xs tracking-[0.2em] uppercase text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-all disabled:opacity-40"
+      >
+        <RefreshCw className={`h-3.5 w-3.5 shrink-0 ${refreshing ? 'animate-spin' : ''}`} />
+        {refreshing ? 'laster...' : 'sync'}
+      </button>
     </FullScreenShell>
   )
 }

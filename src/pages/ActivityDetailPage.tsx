@@ -164,7 +164,7 @@ export function ActivityDetailPage() {
     if (!window.confirm(`Slette "${activity!.name}"? Alle kamper og poeng for denne aktiviteten forsvinner.`)) return
     void runAction('Sletting', async () => {
       await deleteActivity(id!)
-      navigate('/admin/activities')
+      navigate('/admin')
     })
   }
 

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Gamepad2, Plus, ChevronRight, Trash2 } from 'lucide-react'
+import { Gamepad2, Plus, ChevronRight, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
 import {
   VALID_FORMATS,
   SELECTABLE_ACTIVITY_TYPES,
@@ -20,7 +20,7 @@ import { countAllRoundRobinMatches } from '@/lib/algorithms/round-robin'
 import type { ActivityType, ActivityFormat } from '@/lib/types'
 
 export function ActivitiesPage() {
-  const { activities, loading, addActivity, deleteActivity } = useActivities()
+  const { activities, loading, addActivity, deleteActivity, reorderActivities } = useActivities()
   const { contestants } = useContestants()
   const [showForm, setShowForm] = useState(false)
   const [name, setName] = useState('')
@@ -51,9 +51,29 @@ export function ActivitiesPage() {
   const visibleActivities = activities.filter((a) => a.type !== 'event')
   // Group by status so the admin sees ongoing work first, drafts in the
   // middle, and completed at the bottom (out of the way once awarded).
+  const [draftOrder, setDraftOrder] = useState<string[] | null>(null)
   const inProgressActivities = visibleActivities.filter((a) => a.status === 'in_progress')
-  const draftActivities = visibleActivities.filter((a) => a.status === 'draft')
+  const rawDrafts = visibleActivities.filter((a) => a.status === 'draft')
+  const draftActivities = draftOrder
+    ? rawDrafts.sort((a, b) => draftOrder.indexOf(a.id) - draftOrder.indexOf(b.id))
+    : rawDrafts
   const completedActivities = visibleActivities.filter((a) => a.status === 'completed')
+
+  async function moveDraft(id: string, dir: 'up' | 'down') {
+    const ids = draftActivities.map((a) => a.id)
+    const idx = ids.indexOf(id)
+    if (dir === 'up' && idx === 0) return
+    if (dir === 'down' && idx === ids.length - 1) return
+    const swapWith = dir === 'up' ? idx - 1 : idx + 1
+    const newIds = [...ids]
+    ;[newIds[idx], newIds[swapWith]] = [newIds[swapWith], newIds[idx]]
+    setDraftOrder(newIds)
+    try {
+      await reorderActivities(newIds)
+    } catch {
+      setError('Kunne ikke endre rekkefølge')
+    }
+  }
 
   function handleTypeChange(newType: ActivityType) {
     setType(newType)
@@ -283,6 +303,8 @@ export function ActivitiesPage() {
             activities={draftActivities}
             onDelete={handleDelete}
             emptyText="Ingen utkast."
+            onMoveUp={(id) => moveDraft(id, 'up')}
+            onMoveDown={(id) => moveDraft(id, 'down')}
           />
           <ActivitySection
             title="Fullført"
@@ -301,11 +323,15 @@ function ActivitySection({
   activities,
   onDelete,
   emptyText,
+  onMoveUp,
+  onMoveDown,
 }: {
   title: string
   activities: { id: string; name: string; type: ActivityType; format: ActivityFormat; status: 'draft' | 'in_progress' | 'completed' }[]
   onDelete: (e: React.MouseEvent, id: string, name: string) => void
   emptyText: string
+  onMoveUp?: (id: string) => void
+  onMoveDown?: (id: string) => void
 }) {
   return (
     <section className="space-y-2">
@@ -316,7 +342,7 @@ function ActivitySection({
         <p className="text-xs text-muted-foreground px-1 italic">{emptyText}</p>
       ) : (
         <div className="space-y-2">
-          {activities.map((a) => (
+          {activities.map((a, i) => (
             <Link key={a.id} to={`/admin/activities/${a.id}`}>
               <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
                 <CardContent className="flex items-center justify-between py-3 px-4">
@@ -338,6 +364,30 @@ function ActivitySection({
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
+                    {onMoveUp && onMoveDown && (
+                      <div className="flex flex-col">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-5 w-8 text-muted-foreground"
+                          disabled={i === 0}
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onMoveUp(a.id) }}
+                          aria-label="Flytt opp"
+                        >
+                          <ChevronUp className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-5 w-8 text-muted-foreground"
+                          disabled={i === activities.length - 1}
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onMoveDown(a.id) }}
+                          aria-label="Flytt ned"
+                        >
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    )}
                     <Button
                       size="icon"
                       variant="ghost"

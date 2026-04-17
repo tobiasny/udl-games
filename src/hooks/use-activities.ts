@@ -60,5 +60,14 @@ export function useActivities() {
     await fetchActivities()
   }
 
-  return { activities, loading, addActivity, updateActivityStatus, deleteActivity, refetch: fetchActivities }
+  const reorderActivities = async (orderedIds: string[]) => {
+    const { error } = await supabase.rpc('reorder_activities', {
+      token_input: sessionToken,
+      ordered_ids: orderedIds,
+    })
+    if (error) throw error
+    await fetchActivities()
+  }
+
+  return { activities, loading, addActivity, updateActivityStatus, deleteActivity, reorderActivities, refetch: fetchActivities }
 }

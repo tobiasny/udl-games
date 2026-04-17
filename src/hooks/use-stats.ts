@@ -31,6 +31,7 @@ export interface RacePoint {
 export interface RecentEvent {
   activityName: string
   activityFormat: ActivityFormat
+  createdAt: string
   completedAt: string
   standings: { contestant: Contestant; points: number; rank: number }[]
 }
@@ -297,6 +298,7 @@ export function useStats({ pollInterval = 0 }: { pollInterval?: number } = {}): 
       .map((activity) => ({
         activityName: activity.name,
         activityFormat: activity.format,
+        createdAt: activity.created_at,
         completedAt: activity.completed_at ?? activity.created_at,
         standings: standingsFor(activity),
       }))

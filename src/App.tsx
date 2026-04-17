@@ -4,15 +4,13 @@ import { MainLayout } from '@/components/layout/MainLayout'
 import { AdminGuard } from '@/components/layout/AdminGuard'
 import { LeaderboardPage } from '@/pages/LeaderboardPage'
 import { LoginPage } from '@/pages/LoginPage'
-import { ActivitiesPage } from '@/pages/ActivitiesPage'
 import { ActivityDetailPage } from '@/pages/ActivityDetailPage'
-import { ContestantsPage } from '@/pages/ContestantsPage'
 import { RebusPage } from '@/pages/RebusPage'
-import { RebusAdminPage } from '@/pages/RebusAdminPage'
 import { ActivityHistoryPage } from '@/pages/ActivityHistoryPage'
-import { EventsPage } from '@/pages/EventsPage'
 import { StatsPage } from '@/pages/StatsPage'
 import { PlayerProfilePage } from '@/pages/PlayerProfilePage'
+import { DisplayPage } from '@/pages/DisplayPage'
+import { AdminPage } from '@/pages/AdminPage'
 
 export default function App() {
   const auth = useAuthProvider()
@@ -21,8 +19,9 @@ export default function App() {
     <AuthContext.Provider value={auth}>
       <div className="min-h-screen bg-background">
         <Routes>
-          {/* Hidden full-screen rebus view — no header, no menu */}
+          {/* Hidden full-screen views — no header, no menu */}
           <Route path="/rebus/run" element={<RebusPage />} />
+          <Route path="/display" element={<DisplayPage />} />
 
           {/* Main app with header */}
           <Route element={<MainLayout />}>
@@ -32,24 +31,12 @@ export default function App() {
             <Route path="/players/:id" element={<PlayerProfilePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route
-              path="/admin/activities"
-              element={<AdminGuard><ActivitiesPage /></AdminGuard>}
+              path="/admin"
+              element={<AdminGuard><AdminPage /></AdminGuard>}
             />
             <Route
               path="/admin/activities/:id"
               element={<AdminGuard><ActivityDetailPage /></AdminGuard>}
-            />
-            <Route
-              path="/admin/contestants"
-              element={<AdminGuard><ContestantsPage /></AdminGuard>}
-            />
-            <Route
-              path="/admin/events"
-              element={<AdminGuard><EventsPage /></AdminGuard>}
-            />
-            <Route
-              path="/admin/rebus"
-              element={<AdminGuard><RebusAdminPage /></AdminGuard>}
             />
           </Route>
         </Routes>

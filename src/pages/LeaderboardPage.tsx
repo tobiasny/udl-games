@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
+import confetti from 'canvas-confetti'
 import { useLeaderboard, type LeaderboardEntryWithDelta } from '@/hooks/use-leaderboard'
-import { useStats } from '@/hooks/use-stats'
+import { useActivityHistory } from '@/hooks/use-activity-history'
+import { useNextActivity } from '@/hooks/use-next-activity'
 import { Card, CardContent } from '@/components/ui/card'
 import { AnimatedNumber } from '@/components/AnimatedNumber'
-import { RecentEventsFeed } from '@/components/stats/RecentEventsFeed'
-import { PredictionBlock } from '@/components/stats/PredictionBlock'
 import { cn } from '@/lib/utils'
-import { Crown, Medal, Award, TrendingUp, TrendingDown } from 'lucide-react'
+import { Crown, Medal, Award, TrendingUp, TrendingDown, Radio, Clock } from 'lucide-react'
 
 const RANK_STYLES: Record<number, string> = {
   1: 'neon-border-gold',
@@ -36,14 +36,33 @@ function ordinal(n: number) {
 
 export function LeaderboardPage() {
   const { entries, loading } = useLeaderboard()
-  const stats = useStats({ pollInterval: 10000 })
+  const { currents } = useActivityHistory()
+  const { next } = useNextActivity()
+  const firedRef = useRef<Set<string>>(new Set())
+
+  // Fire confetti when any entry gains points
+  useEffect(() => {
+    const gainers = entries.filter((e) => e.pointsDelta > 0)
+    if (gainers.length === 0) return
+    // Use total_points as a unique key so we only fire once per award
+    const key = gainers.map((e) => `${e.id}:${e.total_points}`).join(',')
+    if (firedRef.current.has(key)) return
+    firedRef.current.add(key)
+
+    confetti({
+      particleCount: 140,
+      spread: 80,
+      origin: { y: 0.5 },
+      colors: ['#c9a227', '#10b981', '#e34c26', '#a855f7', '#06b6d4'],
+    })
+  }, [entries])
 
   if (loading) {
     return <div className="text-center py-12 text-muted-foreground">Laster...</div>
   }
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-4 pb-8">
       {/* Hero header */}
       <div className="text-center pt-8 pb-2 animate-fade-up">
         <h1 className="font-display text-4xl tracking-tight">
@@ -53,6 +72,47 @@ export function LeaderboardPage() {
           Mats drekkes ut
         </p>
       </div>
+
+      {/* Activity status row — active + next side by side when both present */}
+      {(currents.length > 0 || (next && !currents.some((c) => c.activity.id === next?.id))) && (
+        <div className={`grid gap-3 animate-fade-up ${
+          currents.length > 0 && next && !currents.some((c) => c.activity.id === next.id)
+            ? 'grid-cols-2'
+            : 'grid-cols-1'
+        }`}>
+          {/* "Nå spilles" card */}
+          {currents.length > 0 && (
+            <Link to="/activities" className="min-w-0">
+              <div className="flex flex-col gap-2 px-4 py-4 h-full rounded-2xl border border-primary/40 bg-primary/8 hover:bg-primary/12 transition-colors">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/15 shrink-0">
+                    <Radio className="h-4 w-4 text-primary animate-pulse" />
+                  </div>
+                  <span className="text-xs font-mono tracking-widest uppercase text-primary/70">Spilles nå</span>
+                </div>
+                <div className="font-semibold text-sm leading-snug line-clamp-2">
+                  {currents.length === 1
+                    ? currents[0].activity.name
+                    : `${currents.length} aktiviteter pågår`}
+                </div>
+              </div>
+            </Link>
+          )}
+
+          {/* "Neste aktivitet" card */}
+          {next && !currents.some((c) => c.activity.id === next.id) && (
+            <div className="flex flex-col gap-2 px-4 py-4 h-full rounded-2xl border border-border bg-card/40 min-w-0">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-secondary shrink-0">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <span className="text-xs font-mono tracking-widest uppercase text-muted-foreground">Neste</span>
+              </div>
+              <div className="font-semibold text-sm leading-snug line-clamp-2">{next.name}</div>
+            </div>
+          )}
+        </div>
+      )}
 
       {entries.length === 0 ? (
         <Card className="animate-fade-up">
@@ -67,9 +127,6 @@ export function LeaderboardPage() {
           ))}
         </div>
       )}
-
-      <PredictionBlock entries={entries} contestantStats={stats.contestantStats} />
-      <RecentEventsFeed events={stats.recentEvents} />
     </div>
   )
 }
@@ -79,7 +136,6 @@ function LeaderboardRow({ entry, index }: { entry: LeaderboardEntryWithDelta; in
   const [showDelta, setShowDelta] = useState(false)
   const [showRankChange, setShowRankChange] = useState(false)
 
-  // Flash point delta when it changes
   useEffect(() => {
     if (entry.pointsDelta !== 0) {
       setShowDelta(true)
@@ -88,7 +144,6 @@ function LeaderboardRow({ entry, index }: { entry: LeaderboardEntryWithDelta; in
     }
   }, [entry.pointsDelta, entry.total_points])
 
-  // Flash rank change
   useEffect(() => {
     if (entry.rankDelta !== 0) {
       setShowRankChange(true)
@@ -120,7 +175,6 @@ function LeaderboardRow({ entry, index }: { entry: LeaderboardEntryWithDelta; in
             ) : (
               <span className="font-display text-lg">{entry.rank}</span>
             )}
-            {/* Rank change indicator */}
             {showRankChange && entry.rankDelta !== 0 && (
               <span className={cn(
                 'absolute -top-1.5 -right-1.5 flex items-center text-[10px] font-bold rounded-full px-1',
@@ -161,7 +215,6 @@ function LeaderboardRow({ entry, index }: { entry: LeaderboardEntryWithDelta; in
           </div>
         </div>
         <div className="text-right flex items-center gap-2">
-          {/* Point delta flash */}
           {showDelta && entry.pointsDelta !== 0 && (
             <span className={cn(
               'text-sm font-bold animate-fade-up',

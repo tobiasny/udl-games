@@ -6,7 +6,6 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  Legend,
   CartesianGrid,
 } from 'recharts'
 import { Card, CardContent } from '@/components/ui/card'
@@ -117,15 +116,15 @@ export function DrinkTab({ drinks }: DrinkTabProps) {
       {/* Hourly histogram over time — horizontally scrollable */}
       {hourlyData.length > 0 && (
         <Card>
-          <CardContent className="pt-4 pb-2 px-2">
+          <CardContent className="pt-4 pb-3 px-2">
             <div className="text-xs text-muted-foreground mb-3 px-2">Drikker per time</div>
             <div className="overflow-x-auto" ref={scrollRef}>
               <div style={{ width: Math.max(hourlyData.length * 44, 300) }}>
                 <BarChart
                   width={Math.max(hourlyData.length * 44, 300)}
-                  height={240}
+                  height={200}
                   data={hourlyData}
-                  margin={{ top: 0, right: 8, left: -20, bottom: 60 }}
+                  margin={{ top: 0, right: 8, left: -20, bottom: 52 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
                   <XAxis
@@ -156,13 +155,6 @@ export function DrinkTab({ drinks }: DrinkTabProps) {
                       return [value, c?.name ?? name]
                     }}
                   />
-                  <Legend
-                    wrapperStyle={{ fontSize: '11px', paddingTop: '24px' }}
-                    formatter={(value) => {
-                      const c = activeContestants.find((c) => c.id === value)
-                      return c?.name ?? value
-                    }}
-                  />
                   {activeContestants.map((c, i) => (
                     <Bar
                       key={c.id}
@@ -174,6 +166,18 @@ export function DrinkTab({ drinks }: DrinkTabProps) {
                   ))}
                 </BarChart>
               </div>
+            </div>
+            {/* Static legend — outside scroll container so it's always visible */}
+            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 px-2">
+              {activeContestants.map((c, i) => (
+                <div key={c.id} className="flex items-center gap-1.5">
+                  <span
+                    className="inline-block w-2.5 h-2.5 rounded-sm shrink-0"
+                    style={{ background: DRINK_COLORS[i % DRINK_COLORS.length] }}
+                  />
+                  <span className="text-xs text-muted-foreground">{c.name}</span>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>

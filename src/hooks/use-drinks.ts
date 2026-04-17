@@ -11,17 +11,7 @@ export interface DrinkLogEntry {
 
 export interface DrinkCount {
   contestant: Contestant
-  friday: number
-  saturday: number
   total: number
-}
-
-function getDayLabel(dateStr: string): 'friday' | 'saturday' | 'other' {
-  const d = new Date(dateStr)
-  const dow = d.getDay() // 0=Sun,5=Fri,6=Sat
-  if (dow === 5) return 'friday'
-  if (dow === 6) return 'saturday'
-  return 'other'
 }
 
 export function useDrinks() {
@@ -39,15 +29,10 @@ export function useDrinks() {
     const logs = (logsRes.data ?? []) as DrinkLogEntry[]
     const contestants = (contestantsRes.data ?? []) as Contestant[]
 
-    const counts: DrinkCount[] = contestants.map((c) => {
-      const mine = logs.filter((l) => l.contestant_id === c.id)
-      return {
-        contestant: c,
-        friday: mine.filter((l) => getDayLabel(l.created_at) === 'friday').length,
-        saturday: mine.filter((l) => getDayLabel(l.created_at) === 'saturday').length,
-        total: mine.length,
-      }
-    })
+    const counts: DrinkCount[] = contestants.map((c) => ({
+      contestant: c,
+      total: logs.filter((l) => l.contestant_id === c.id).length,
+    }))
 
     setDrinkLogs(logs)
     setDrinkCounts(counts)

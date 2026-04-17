@@ -10,7 +10,6 @@ import {
   CartesianGrid,
 } from 'recharts'
 import { Card, CardContent } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
 import type { DrinkCount, DrinkLogEntry } from '@/hooks/use-drinks'
 
 // Must use hardcoded hex — CSS vars don't resolve on SVG attributes
@@ -26,25 +25,29 @@ const DRINK_COLORS = [
 ]
 
 interface HourlyBucket {
+  key: string
   label: string
   [contestantId: string]: number | string
 }
 
 function buildHourlyData(logs: DrinkLogEntry[]): HourlyBucket[] {
-  const buckets: Record<number, Record<string, number>> = {}
+  const buckets: Record<string, Record<string, number>> = {}
 
   for (const log of logs) {
-    const hour = new Date(log.created_at).getHours()
-    if (!buckets[hour]) buckets[hour] = {}
-    buckets[hour][log.contestant_id] = (buckets[hour][log.contestant_id] ?? 0) + 1
+    const d = new Date(log.created_at)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}`
+    if (!buckets[key]) buckets[key] = {}
+    buckets[key][log.contestant_id] = (buckets[key][log.contestant_id] ?? 0) + 1
   }
 
-  const hours = Object.keys(buckets).map(Number).sort((a, b) => a - b)
+  const keys = Object.keys(buckets).sort()
 
-  return hours.map((hour) => ({
-    label: `${String(hour).padStart(2, '0')}:00`,
-    ...buckets[hour],
-  }))
+  return keys.map((key) => {
+    const [datePart, hourPart] = key.split('T')
+    const d = new Date(`${datePart}T${hourPart}:00:00`)
+    const label = d.toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' }) + ' ' + hourPart + ':00'
+    return { key, label, ...buckets[key] }
+  })
 }
 
 interface DrinkTabProps {
@@ -57,11 +60,8 @@ export function DrinkTab({ drinks }: DrinkTabProps) {
   }
 
   const sorted = drinks.drinkCounts.filter((d) => d.total > 0).sort((a, b) => b.total - a.total)
+  const grandTotal = sorted.reduce((s, d) => s + d.total, 0)
   const activeContestants = sorted.map((d) => d.contestant)
-
-  const fridayTotal = drinks.drinkCounts.reduce((s, d) => s + d.friday, 0)
-  const saturdayTotal = drinks.drinkCounts.reduce((s, d) => s + d.saturday, 0)
-
   const hourlyData = buildHourlyData(drinks.drinkLogs)
 
   if (sorted.length === 0) {
@@ -76,35 +76,30 @@ export function DrinkTab({ drinks }: DrinkTabProps) {
 
   return (
     <div className="space-y-4">
-      {/* Day totals */}
-      <div className="grid grid-cols-2 gap-3">
-        <Card>
-          <CardContent className="py-3 px-4 text-center">
-            <div className="font-display text-2xl tracking-wider">{fridayTotal}</div>
-            <div className="text-xs text-muted-foreground">Fredag totalt</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="py-3 px-4 text-center">
-            <div className="font-display text-2xl tracking-wider">{saturdayTotal}</div>
-            <div className="text-xs text-muted-foreground">Lørdag totalt</div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Grand total */}
+      <Card>
+        <CardContent className="py-3 px-4 text-center">
+          <div className="font-display text-3xl tracking-wider text-primary">{grandTotal}</div>
+          <div className="text-xs text-muted-foreground">Totalt</div>
+        </CardContent>
+      </Card>
 
-      {/* Hourly histogram */}
+      {/* Hourly histogram over time */}
       {hourlyData.length > 0 && (
         <Card>
           <CardContent className="pt-4 pb-2 px-2">
             <div className="text-xs text-muted-foreground mb-3 px-2">Drikker per time</div>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={hourlyData} margin={{ top: 0, right: 8, left: -20, bottom: 0 }}>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={hourlyData} margin={{ top: 0, right: 8, left: -20, bottom: 40 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
                 <XAxis
                   dataKey="label"
-                  tick={{ fontSize: 10, fill: '#888' }}
+                  tick={{ fontSize: 9, fill: '#888' }}
                   tickLine={false}
                   axisLine={false}
+                  angle={-45}
+                  textAnchor="end"
+                  interval={0}
                 />
                 <YAxis
                   allowDecimals={false}
@@ -120,6 +115,10 @@ export function DrinkTab({ drinks }: DrinkTabProps) {
                     fontSize: '12px',
                   }}
                   cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+                  formatter={(value, name) => {
+                    const c = activeContestants.find((c) => c.id === name)
+                    return [value, c?.name ?? name]
+                  }}
                 />
                 <Legend
                   wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }}
@@ -143,7 +142,7 @@ export function DrinkTab({ drinks }: DrinkTabProps) {
         </Card>
       )}
 
-      {/* Per-player list */}
+      {/* Per-player totals */}
       {sorted.map((d, i) => (
         <Card key={d.contestant.id}>
           <CardContent className="flex items-center gap-3 py-3 px-4">
@@ -162,24 +161,7 @@ export function DrinkTab({ drinks }: DrinkTabProps) {
               </div>
             )}
             <span className="flex-1 font-medium">{d.contestant.name}</span>
-            <div className="flex items-center gap-3 text-sm">
-              <div className="text-center">
-                <div className={cn('font-display', d.friday > 0 ? 'text-foreground' : 'text-muted-foreground/40')}>
-                  {d.friday}
-                </div>
-                <div className="text-xs text-muted-foreground">Fre</div>
-              </div>
-              <div className="text-center">
-                <div className={cn('font-display', d.saturday > 0 ? 'text-foreground' : 'text-muted-foreground/40')}>
-                  {d.saturday}
-                </div>
-                <div className="text-xs text-muted-foreground">Lør</div>
-              </div>
-              <div className="text-center min-w-8">
-                <div className="font-display text-lg text-primary">{d.total}</div>
-                <div className="text-xs text-muted-foreground">Tot</div>
-              </div>
-            </div>
+            <div className="font-display text-xl text-primary">{d.total}</div>
           </CardContent>
         </Card>
       ))}

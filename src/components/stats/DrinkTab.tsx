@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { User } from 'lucide-react'
 import {
   BarChart,
@@ -75,14 +76,23 @@ interface DrinkTabProps {
 }
 
 export function DrinkTab({ drinks }: DrinkTabProps) {
-  if (drinks.loading) {
-    return <div className="text-center py-12 text-muted-foreground">Laster...</div>
-  }
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   const sorted = drinks.drinkCounts.filter((d) => d.total > 0).sort((a, b) => b.total - a.total)
   const grandTotal = sorted.reduce((s, d) => s + d.total, 0)
   const activeContestants = sorted.map((d) => d.contestant)
   const hourlyData = buildHourlyData(drinks.drinkLogs)
+
+  // Scroll to the rightmost (latest) bar on mount and whenever data changes
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollLeft = scrollRef.current.scrollWidth
+    }
+  }, [hourlyData.length])
+
+  if (drinks.loading) {
+    return <div className="text-center py-12 text-muted-foreground">Laster...</div>
+  }
 
   if (sorted.length === 0) {
     return (
@@ -109,13 +119,13 @@ export function DrinkTab({ drinks }: DrinkTabProps) {
         <Card>
           <CardContent className="pt-4 pb-2 px-2">
             <div className="text-xs text-muted-foreground mb-3 px-2">Drikker per time</div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" ref={scrollRef}>
               <div style={{ width: Math.max(hourlyData.length * 44, 300) }}>
                 <BarChart
                   width={Math.max(hourlyData.length * 44, 300)}
-                  height={220}
+                  height={240}
                   data={hourlyData}
-                  margin={{ top: 0, right: 8, left: -20, bottom: 48 }}
+                  margin={{ top: 0, right: 8, left: -20, bottom: 60 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
                   <XAxis
@@ -147,7 +157,7 @@ export function DrinkTab({ drinks }: DrinkTabProps) {
                     }}
                   />
                   <Legend
-                    wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }}
+                    wrapperStyle={{ fontSize: '11px', paddingTop: '24px' }}
                     formatter={(value) => {
                       const c = activeContestants.find((c) => c.id === value)
                       return c?.name ?? value

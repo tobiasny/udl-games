@@ -3,16 +3,18 @@ import { useContestants } from '@/hooks/use-contestants'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
-import { Users, Plus, Trash2, Pencil, Check, X, ImagePlus, User } from 'lucide-react'
+import { Users, Plus, Trash2, Pencil, Check, X, ImagePlus, User, Key } from 'lucide-react'
 
 export function ContestantsPage() {
-  const { contestants, loading, addContestant, updateContestant, updateAvatar, deleteContestant } = useContestants()
+  const { contestants, loading, addContestant, updateContestant, updateAvatar, deleteContestant, setPlayerPin } = useContestants()
   const [newName, setNewName] = useState('')
   const [editId, setEditId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
   const [avatarEditId, setAvatarEditId] = useState<string | null>(null)
   const [avatarUrl, setAvatarUrl] = useState('')
   const [error, setError] = useState('')
+  const [pinEditId, setPinEditId] = useState<string | null>(null)
+  const [pinValue, setPinValue] = useState('')
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
@@ -51,6 +53,18 @@ export function ContestantsPage() {
       await deleteContestant(id)
     } catch {
       setError('Kunne ikke slette')
+    }
+  }
+
+  async function handlePinSave(id: string) {
+    if (!pinValue.trim()) return
+    setError('')
+    try {
+      await setPlayerPin(id, pinValue.trim())
+      setPinEditId(null)
+      setPinValue('')
+    } catch {
+      setError('Kunne ikke sette PIN')
     }
   }
 
@@ -169,6 +183,44 @@ export function ContestantsPage() {
                   </Button>
                   <Button size="sm" variant="ghost" onClick={() => { setAvatarEditId(null); setAvatarUrl('') }}>
                     <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+
+              {/* PIN editor */}
+              {pinEditId === c.id ? (
+                <div className="flex gap-2 items-center pl-12">
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={4}
+                    placeholder="4-sifret PIN"
+                    value={pinValue}
+                    onChange={(e) => setPinValue(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    onKeyDown={(e) => e.key === 'Enter' && handlePinSave(c.id)}
+                    autoFocus
+                    className="flex-1 bg-background border border-border rounded-md px-3 py-1.5 text-sm font-mono tracking-widest text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                  <Button size="sm" variant="ghost" onClick={() => handlePinSave(c.id)}>
+                    <Check className="h-4 w-4" />
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => { setPinEditId(null); setPinValue('') }}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 pl-12">
+                  <Key className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-xs text-muted-foreground flex-1">
+                    {c.pin_hash ? '••••' : 'Ingen PIN'}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-xs text-muted-foreground"
+                    onClick={() => { setPinEditId(c.id); setPinValue('') }}
+                  >
+                    {c.pin_hash ? 'Endre' : 'Sett'}
                   </Button>
                 </div>
               )}

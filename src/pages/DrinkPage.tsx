@@ -36,11 +36,17 @@ export function DrinkPage() {
     if (!selectedId) return
     setLoginPending(true)
     setLoginError('')
-    const success = await login(selectedId, pinValue)
-    setLoginPending(false)
-    if (!success) {
+    try {
+      const success = await login(selectedId, pinValue)
+      if (!success) {
+        setPin('')
+        setLoginError('Feil PIN-kode')
+      }
+    } catch {
       setPin('')
-      setLoginError('Feil PIN-kode')
+      setLoginError('Nettverksfeil — prøv igjen')
+    } finally {
+      setLoginPending(false)
     }
   }, [selectedId, login])
 
@@ -59,7 +65,7 @@ export function DrinkPage() {
     setLoginError('')
   }
 
-  async function handleDrink() {
+  const handleDrink = useCallback(async () => {
     if (!playerToken || Date.now() < cooldownUntil) return
     setOptimisticDelta((d) => d + 1)
     setFlashGreen(true)
@@ -67,11 +73,11 @@ export function DrinkPage() {
     setTimeout(() => setFlashGreen(false), 2000)
     try {
       await logDrinkSelf(playerToken)
-      setOptimisticDelta(0)
+      setOptimisticDelta((d) => d - 1)
     } catch {
       setOptimisticDelta((d) => d - 1)
     }
-  }
+  }, [playerToken, cooldownUntil, logDrinkSelf])
 
   if (authLoading || contestantsLoading) {
     return <div className="text-center py-12 text-muted-foreground">Laster...</div>

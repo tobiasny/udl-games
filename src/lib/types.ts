@@ -14,6 +14,7 @@ export interface Contestant {
   id: string
   name: string
   avatar_url: string | null
+  pin_hash: string | null
   created_at: string
 }
 

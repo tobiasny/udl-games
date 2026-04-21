@@ -66,6 +66,7 @@ export function useContestants() {
       pin_input: pin,
     })
     if (error) throw error
+    await fetchContestants()
   }
 
   return { contestants, loading, addContestant, updateContestant, updateAvatar, deleteContestant, setPlayerPin, refetch: fetchContestants }

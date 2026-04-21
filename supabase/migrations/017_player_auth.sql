@@ -107,6 +107,9 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
+  IF pin_input !~ '^\d{4}$' THEN
+    RAISE EXCEPTION 'PIN must be exactly 4 digits';
+  END IF;
   PERFORM verify_admin(token_input);
   UPDATE contestants
     SET pin_hash = extensions.crypt(pin_input, extensions.gen_salt('bf'))

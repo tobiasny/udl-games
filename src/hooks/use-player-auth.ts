@@ -14,9 +14,13 @@ export function usePlayerAuth() {
       setLoading(false)
       return
     }
-    const { data } = await supabase.rpc('get_player_session', {
+    const { data, error } = await supabase.rpc('get_player_session', {
       player_token_input: token,
     })
+    if (error) {
+      setLoading(false)
+      return
+    }
     if (data) {
       setContestantId(data as string)
       setPlayerToken(token)
@@ -34,10 +38,11 @@ export function usePlayerAuth() {
     contestantIdInput: string,
     pin: string,
   ): Promise<boolean> => {
-    const { data } = await supabase.rpc('authenticate_player', {
+    const { data, error } = await supabase.rpc('authenticate_player', {
       contestant_id_input: contestantIdInput,
       pin_input: pin,
     })
+    if (error) throw error
     if (!data) return false
     localStorage.setItem(PLAYER_SESSION_KEY, data as string)
     setPlayerToken(data as string)

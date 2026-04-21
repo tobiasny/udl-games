@@ -11,6 +11,7 @@ import { StatsPage } from '@/pages/StatsPage'
 import { PlayerProfilePage } from '@/pages/PlayerProfilePage'
 import { DisplayPage } from '@/pages/DisplayPage'
 import { AdminPage } from '@/pages/AdminPage'
+import { DrinkPage } from '@/pages/DrinkPage'
 
 export default function App() {
   const auth = useAuthProvider()
@@ -28,6 +29,7 @@ export default function App() {
             <Route path="/" element={<LeaderboardPage />} />
             <Route path="/activities" element={<ActivityHistoryPage />} />
             <Route path="/stats" element={<StatsPage />} />
+            <Route path="/drikk" element={<DrinkPage />} />
             <Route path="/players/:id" element={<PlayerProfilePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route

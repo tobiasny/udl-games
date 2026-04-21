@@ -59,5 +59,14 @@ export function useContestants() {
     await fetchContestants()
   }
 
-  return { contestants, loading, addContestant, updateContestant, updateAvatar, deleteContestant, refetch: fetchContestants }
+  const setPlayerPin = async (contestantId: string, pin: string) => {
+    const { error } = await supabase.rpc('set_player_pin', {
+      token_input: sessionToken,
+      contestant_id_input: contestantId,
+      pin_input: pin,
+    })
+    if (error) throw error
+  }
+
+  return { contestants, loading, addContestant, updateContestant, updateAvatar, deleteContestant, setPlayerPin, refetch: fetchContestants }
 }

@@ -66,5 +66,13 @@ export function useDrinks() {
     await fetchAll()
   }
 
-  return { drinkCounts, drinkLogs, loading, logDrink, removeLastDrink, refetch: fetchAll }
+  const logDrinkSelf = async (playerToken: string) => {
+    const { error } = await supabase.rpc('log_drink_self', {
+      player_token_input: playerToken,
+    })
+    if (error) throw error
+    await fetchAll()
+  }
+
+  return { drinkCounts, drinkLogs, loading, logDrink, removeLastDrink, logDrinkSelf, refetch: fetchAll }
 }

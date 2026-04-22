@@ -566,7 +566,7 @@ function StoryView({
 
           {/* Description */}
           {titleType.done && (
-            <p className="mt-5 font-mono text-sm sm:text-base text-muted-foreground whitespace-pre-wrap leading-relaxed min-h-[3rem]">
+            <p className="mt-2 font-mono text-sm sm:text-base text-muted-foreground whitespace-pre-wrap leading-relaxed min-h-[3rem]">
               {descType.displayed}
               {!descType.done && <BlinkingCursor />}
             </p>

@@ -3,7 +3,7 @@ import { useContestants } from '@/hooks/use-contestants'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
-import { Users, Plus, Trash2, Pencil, Check, X, ImagePlus, User, Key } from 'lucide-react'
+import { Users, Plus, Trash2, Pencil, Check, X, ImagePlus, User, Key, Eye, EyeOff } from 'lucide-react'
 
 export function ContestantsPage() {
   const { contestants, loading, addContestant, updateContestant, updateAvatar, deleteContestant, setPlayerPin } = useContestants()
@@ -15,6 +15,7 @@ export function ContestantsPage() {
   const [error, setError] = useState('')
   const [pinEditId, setPinEditId] = useState<string | null>(null)
   const [pinValue, setPinValue] = useState('')
+  const [showPinId, setShowPinId] = useState<string | null>(null)
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
@@ -211,14 +212,28 @@ export function ContestantsPage() {
               ) : (
                 <div className="flex items-center gap-2 pl-12">
                   <Key className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                  <span className="text-xs text-muted-foreground flex-1">
-                    {c.pin_hash ? '••••' : 'Ingen PIN'}
+                  <span className="text-xs font-mono tracking-widest text-muted-foreground flex-1">
+                    {c.pin_hash
+                      ? (showPinId === c.id ? (c.pin_plain ?? '????') : '••••')
+                      : 'Ingen PIN'}
                   </span>
+                  {c.pin_hash && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 w-7 p-0 text-muted-foreground"
+                      onClick={() => setShowPinId(showPinId === c.id ? null : c.id)}
+                    >
+                      {showPinId === c.id
+                        ? <EyeOff className="h-3.5 w-3.5" />
+                        : <Eye className="h-3.5 w-3.5" />}
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="ghost"
                     className="h-7 px-2 text-xs text-muted-foreground"
-                    onClick={() => { setPinEditId(c.id); setPinValue('') }}
+                    onClick={() => { setPinEditId(c.id); setPinValue(''); setShowPinId(null) }}
                   >
                     {c.pin_hash ? 'Endre' : 'Sett'}
                   </Button>

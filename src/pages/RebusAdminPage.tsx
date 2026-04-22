@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRebus, type RebusTask } from '@/hooks/use-rebus'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -23,7 +23,18 @@ export function RebusAdminPage() {
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [taskOrder, setTaskOrder] = useState<string[] | null>(null)
+  const prevTaskIdsRef = useRef<string[]>([])
   const [error, setError] = useState('')
+
+  // When new tasks arrive (e.g. after addTask), append them to taskOrder so they land at the bottom
+  useEffect(() => {
+    const incoming = tasks.map(t => t.id)
+    if (taskOrder) {
+      const added = incoming.filter(id => !taskOrder.includes(id))
+      if (added.length > 0) setTaskOrder(prev => [...(prev ?? []), ...added])
+    }
+    prevTaskIdsRef.current = incoming
+  }, [tasks])
   const [refreshing, setRefreshing] = useState(false)
   const [showQR, setShowQR] = useState(false)
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)

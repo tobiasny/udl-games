@@ -94,7 +94,7 @@ export function RebusAdminPage() {
           <Button size="sm" variant="outline" onClick={handleRefresh} disabled={refreshing}>
             <RefreshCw className={`h-4 w-4 mr-1 ${refreshing ? 'animate-spin' : ''}`} /> Oppdater
           </Button>
-          <Button size="sm" variant="outline" onClick={() => { if (confirm('Tilbakestill alle oppgaver?')) resetAll() }}>
+          <Button size="sm" variant="outline" onClick={() => { if (confirm('Tilbakestill alle oppgaver?')) resetAll().catch(() => setError('Kunne ikke nullstille')) }}>
             <RotateCcw className="h-4 w-4 mr-1" /> Nullstill
           </Button>
           <Button size="sm" onClick={() => setShowForm(!showForm)}>

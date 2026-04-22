@@ -118,7 +118,7 @@ export function DrinkPage() {
           <Beer className="h-5 w-5" />
           <span className="font-display tracking-wider">{myContestant?.name}</span>
         </div>
-        <Button variant="ghost" size="sm" onClick={logout} className="text-muted-foreground gap-1.5">
+        <Button variant="ghost" size="sm" onClick={() => { logout(); setSelectedId(null); setPin('') }} className="text-muted-foreground gap-1.5">
           <X className="h-3.5 w-3.5" />
           <span className="text-xs">Logg ut</span>
         </Button>
@@ -149,7 +149,7 @@ export function DrinkPage() {
         disabled={isCoolingDown}
       >
         {isCoolingDown ? (
-          <span className="text-sm tracking-widest opacity-60">Venter...</span>
+          <span className="text-sm tracking-widest opacity-60">Drikker...</span>
         ) : (
           <>🍺 +1</>
         )}
@@ -208,97 +208,117 @@ function LoginView({
   onPinDigit,
   onBackspace,
 }: LoginViewProps) {
+  const selected = contestants.find((c) => c.id === selectedId)
+
   return (
-    <div className="space-y-5 pt-2">
-      <div>
-        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-3 text-center">
-          Hvem er du?
-        </p>
-        <div className="space-y-2 max-h-52 overflow-y-auto">
-          {contestants.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => onSelectContestant(c.id)}
-              className={cn(
-                'w-full flex items-center gap-3 px-4 py-2.5 rounded-xl border transition-colors text-left',
-                selectedId === c.id
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border bg-card hover:bg-accent/50 text-foreground',
-              )}
-            >
-              {c.avatar_url ? (
+    <div className="space-y-3 pt-2">
+      <p className="text-xs text-muted-foreground uppercase tracking-widest text-center">
+        Hvem er du?
+      </p>
+      <div className="space-y-2 overflow-y-auto">
+        {contestants.map((c) => (
+          <button
+            key={c.id}
+            onClick={() => onSelectContestant(c.id)}
+            className={cn(
+              'w-full flex items-center gap-3 px-4 py-2.5 rounded-xl border transition-colors text-left',
+              selectedId === c.id
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'border-border bg-card hover:bg-accent/50 text-foreground',
+            )}
+          >
+            {c.avatar_url ? (
+              <img
+                src={c.avatar_url}
+                alt={c.name}
+                className="w-8 h-8 rounded-full object-cover border border-border shrink-0"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                <User className="h-4 w-4 text-muted-foreground" />
+              </div>
+            )}
+            <span className="font-medium">{c.name}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* PIN popover overlay */}
+      {selectedId && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+          onClick={(e) => { if (e.target === e.currentTarget) onSelectContestant('') }}
+        >
+          <div className="bg-card border border-border rounded-2xl p-6 w-72 shadow-[0_0_40px_rgba(99,102,241,0.2)] space-y-4">
+            <div className="flex items-center gap-3">
+              {selected?.avatar_url ? (
                 <img
-                  src={c.avatar_url}
-                  alt={c.name}
-                  className="w-8 h-8 rounded-full object-cover border border-border shrink-0"
+                  src={selected.avatar_url}
+                  alt={selected.name}
+                  className="w-9 h-9 rounded-full object-cover border border-border shrink-0"
                 />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
                   <User className="h-4 w-4 text-muted-foreground" />
                 </div>
               )}
-              <span className="font-medium">{c.name}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {selectedId && (
-        <div className="space-y-3">
-          <p className="text-xs text-muted-foreground uppercase tracking-widest text-center">
-            PIN-kode
-          </p>
-
-          {/* 4-dot PIN indicator */}
-          <div className="flex justify-center gap-3">
-            {[0, 1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className={cn(
-                  'w-10 h-12 rounded-xl border flex items-center justify-center text-xl transition-colors',
-                  i < pin.length
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-border bg-card',
-                )}
-              >
-                {i < pin.length ? '●' : ''}
+              <div>
+                <p className="font-semibold">{selected?.name}</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-widest">PIN-kode</p>
               </div>
-            ))}
-          </div>
+            </div>
 
-          {error && (
-            <p className="text-xs text-destructive text-center">{error}</p>
-          )}
-          {pending && (
-            <p className="text-xs text-muted-foreground text-center animate-pulse">
-              Sjekker...
-            </p>
-          )}
+            {/* 4-dot PIN indicator */}
+            <div className="flex justify-center gap-3">
+              {[0, 1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className={cn(
+                    'w-10 h-12 rounded-xl border flex items-center justify-center text-xl transition-colors',
+                    i < pin.length
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border bg-card',
+                  )}
+                >
+                  {i < pin.length ? '●' : ''}
+                </div>
+              ))}
+            </div>
 
-          {/* Numpad */}
-          <div className="grid grid-cols-3 gap-2 max-w-[200px] mx-auto">
-            {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
+            {error && (
+              <p className="text-xs text-destructive text-center">{error}</p>
+            )}
+            {pending && (
+              <p className="text-xs text-muted-foreground text-center animate-pulse">
+                Sjekker...
+              </p>
+            )}
+
+            {/* Numpad */}
+            <div className="grid grid-cols-3 gap-2 max-w-[200px] mx-auto">
+              {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
+                <button
+                  key={d}
+                  onClick={() => onPinDigit(d)}
+                  className="h-12 rounded-xl border border-border bg-card text-foreground text-lg font-medium hover:bg-accent/50 transition-colors active:scale-95"
+                >
+                  {d}
+                </button>
+              ))}
+              <div />
               <button
-                key={d}
-                onClick={() => onPinDigit(d)}
+                onClick={() => onPinDigit('0')}
                 className="h-12 rounded-xl border border-border bg-card text-foreground text-lg font-medium hover:bg-accent/50 transition-colors active:scale-95"
               >
-                {d}
+                0
               </button>
-            ))}
-            <div />
-            <button
-              onClick={() => onPinDigit('0')}
-              className="h-12 rounded-xl border border-border bg-card text-foreground text-lg font-medium hover:bg-accent/50 transition-colors active:scale-95"
-            >
-              0
-            </button>
-            <button
-              onClick={onBackspace}
-              className="h-12 rounded-xl border border-border bg-card text-muted-foreground hover:bg-accent/50 transition-colors active:scale-95"
-            >
-              ⌫
-            </button>
+              <button
+                onClick={onBackspace}
+                className="h-12 rounded-xl border border-border bg-card text-muted-foreground hover:bg-accent/50 transition-colors active:scale-95"
+              >
+                ⌫
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -162,6 +162,16 @@ export function useRebus() {
     await fetchTasks()
   }
 
+  // Admin: reorder tasks
+  const reorderTasks = async (orderedIds: string[]) => {
+    const { error } = await supabase.rpc('reorder_rebus_tasks', {
+      token_input: sessionToken,
+      ordered_ids: orderedIds,
+    })
+    if (error) throw error
+    await fetchTasks()
+  }
+
   // Admin: reset single task
   const resetTask = async (taskId: string) => {
     const { error } = await supabase.rpc('rebus_reset_task', {
@@ -199,6 +209,7 @@ export function useRebus() {
     deleteTask,
     resetAll,
     resetTask,
+    reorderTasks,
     setStart,
     refetch: fetchTasks,
   }

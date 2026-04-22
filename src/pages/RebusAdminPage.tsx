@@ -17,16 +17,37 @@ export function RebusAdminPage() {
   const {
     tasks, settings, loading, refetch,
     approveTask, rejectAnswer, markArrived, addTask, updateTask, deleteTask,
-    resetAll, resetTask, setStart,
+    resetAll, resetTask, reorderTasks, setStart,
   } = useRebus()
 
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
+  const [taskOrder, setTaskOrder] = useState<string[] | null>(null)
   const [error, setError] = useState('')
   const [refreshing, setRefreshing] = useState(false)
   const [showQR, setShowQR] = useState(false)
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+
+  const orderedTasks = taskOrder
+    ? [...tasks].sort((a, b) => taskOrder.indexOf(a.id) - taskOrder.indexOf(b.id))
+    : tasks
+
+  async function moveTask(id: string, dir: 'up' | 'down') {
+    const ids = orderedTasks.map((t) => t.id)
+    const idx = ids.indexOf(id)
+    if (dir === 'up' && idx === 0) return
+    if (dir === 'down' && idx === ids.length - 1) return
+    const swapWith = dir === 'up' ? idx - 1 : idx + 1
+    const newIds = [...ids]
+    ;[newIds[idx], newIds[swapWith]] = [newIds[swapWith], newIds[idx]]
+    setTaskOrder(newIds)
+    try {
+      await reorderTasks(newIds)
+    } catch {
+      setError('Kunne ikke endre rekkefølge')
+    }
+  }
 
   async function handleRefresh() {
     setRefreshing(true)
@@ -108,7 +129,7 @@ export function RebusAdminPage() {
       )}
 
       <div className="space-y-3">
-        {tasks.map((task) => (
+        {orderedTasks.map((task, i) => (
           <div key={task.id}>
             {editId === task.id ? (
               <TaskForm
@@ -124,6 +145,10 @@ export function RebusAdminPage() {
             ) : (
               <TaskCard
                 task={task}
+                isFirst={i === 0}
+                isLast={i === orderedTasks.length - 1}
+                onMoveUp={() => moveTask(task.id, 'up')}
+                onMoveDown={() => moveTask(task.id, 'down')}
                 onApprove={() => approveTask(task.id).catch(() => setError('Feilet'))}
                 onReject={() => rejectAnswer(task.id).catch(() => setError('Feilet'))}
                 onArrived={() => markArrived(task.id).catch(() => setError('Feilet'))}
@@ -197,9 +222,14 @@ const STATUS_LABELS: Record<string, string> = {
 }
 
 function TaskCard({
-  task, onApprove, onReject, onArrived, onReset, onEdit, onDelete,
+  task, isFirst, isLast, onMoveUp, onMoveDown,
+  onApprove, onReject, onArrived, onReset, onEdit, onDelete,
 }: {
   task: RebusTask
+  isFirst: boolean
+  isLast: boolean
+  onMoveUp: () => void
+  onMoveDown: () => void
   onApprove: () => void
   onReject: () => void
   onArrived: () => void
@@ -214,7 +244,14 @@ function TaskCard({
       <CardContent className="py-3 px-4 space-y-2">
         {/* Header row */}
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground font-mono w-5">#{task.sort_order}</span>
+          <div className="flex flex-col shrink-0">
+            <Button size="icon" variant="ghost" className="h-4 w-5 text-muted-foreground" disabled={isFirst} onClick={onMoveUp}>
+              <ChevronUp className="h-3 w-3" />
+            </Button>
+            <Button size="icon" variant="ghost" className="h-4 w-5 text-muted-foreground" disabled={isLast} onClick={onMoveDown}>
+              <ChevronDown className="h-3 w-3" />
+            </Button>
+          </div>
           <span className="font-medium flex-1 text-sm">{task.title}</span>
           <Badge variant={STATUS_COLORS[task.status] as 'default' | 'secondary' | 'outline'} className="text-xs">
             {STATUS_LABELS[task.status] ?? task.status}

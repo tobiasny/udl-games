@@ -57,7 +57,7 @@ export function ContestantsPage() {
   }
 
   async function handlePinSave(id: string) {
-    if (!pinValue.trim()) return
+    if (pinValue.length !== 4) return
     setError('')
     try {
       await setPlayerPin(id, pinValue.trim())

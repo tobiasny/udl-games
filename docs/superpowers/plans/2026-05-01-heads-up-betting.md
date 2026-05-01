@@ -14,7 +14,7 @@
 
 | File | Action | Responsibility |
 |---|---|---|
-| `supabase/migrations/016_wager.sql` | Create | CHECK constraint updates, `bet_amount` column, `create_wager` RPC |
+| `supabase/migrations/021_wager.sql` | Create | CHECK constraint updates, `bet_amount` column, `create_wager` RPC |
 | `src/lib/types.ts` | Modify | Add `'wager'` to `ActivityType`, `'heads_up'` to `ActivityFormat`, `bet_amount` to `Activity` |
 | `src/lib/constants.ts` | Modify | Add `wager`/`heads_up` entries to all `Record<ActivityType/Format, …>` maps |
 | `src/hooks/use-wagers.ts` | Create | Fetch wagers + point rows; expose `createWager()` mutation |
@@ -27,12 +27,12 @@
 ## Task 1: Migration 016 — wager schema & RPC
 
 **Files:**
-- Create: `supabase/migrations/016_wager.sql`
+- Create: `supabase/migrations/021_wager.sql`
 
 - [ ] **Step 1: Write the migration file**
 
 ```sql
--- 016_wager.sql
+-- 021_wager.sql
 -- Extends the activities table to support zero-sum 1v1 wagers.
 
 -- 1. Expand the type CHECK to allow 'wager'
@@ -156,14 +156,14 @@ If using CLI:
 supabase db push
 ```
 
-If using the Supabase MCP `apply_migration` tool, pass the full SQL content above with migration name `016_wager`.
+If using the Supabase MCP `apply_migration` tool, pass the full SQL content above with migration name `021_wager`.
 
 Verify: in the Supabase dashboard (or via `list_tables`), confirm that `activities` now has a `bet_amount` column.
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add supabase/migrations/016_wager.sql
+git add supabase/migrations/021_wager.sql
 git commit -m "feat: migration 016 — wager activity type and create_wager RPC"
 ```
 

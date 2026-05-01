@@ -82,13 +82,14 @@ BEGIN
   loser_id := CASE WHEN winner_id = player_a_id THEN player_b_id ELSE player_a_id END;
 
   -- Create activity
-  INSERT INTO activities (name, type, format, status, sort_order, num_rounds, bet_amount)
+  INSERT INTO activities (name, type, format, status, sort_order, num_rounds, bet_amount, completed_at)
   VALUES (
     'Veddemål: ' || name_a || ' vs ' || name_b,
     'wager', 'heads_up', 'completed',
     (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM activities),
     1,
-    bet_amount_input
+    bet_amount_input,
+    now()
   )
   RETURNING id INTO new_activity_id;
 

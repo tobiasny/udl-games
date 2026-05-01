@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ACTIVITY_TYPE_LABELS, ACTIVITY_FORMAT_LABELS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
-import { Radio, Trophy, History, User, Hourglass, ChevronDown, Sparkles } from 'lucide-react'
+import { Radio, Trophy, History, User, Hourglass, ChevronDown, Sparkles, Swords } from 'lucide-react'
 import type { ActivityFormat } from '@/lib/types'
 
 export function ActivityHistoryPage() {
@@ -60,7 +60,9 @@ export function ActivityHistoryPage() {
         ) : (
           <div className="space-y-3">
             {completed.map((item, i) =>
-              item.activity.format === 'event' ? (
+              item.activity.type === 'wager' ? (
+                <WagerCard key={item.activity.id} data={item} index={i} />
+              ) : item.activity.format === 'event' ? (
                 <EventCard key={item.activity.id} data={item} index={i} />
               ) : (
                 <CompletedActivityCard key={item.activity.id} data={item} index={i} />
@@ -322,5 +324,48 @@ function StandingsList({
         </div>
       ))}
     </div>
+  )
+}
+
+function WagerCard({ data, index }: { data: ActivityWithStandings; index: number }) {
+  const { activity, standings } = data
+  const winner = standings.find((s) => s.points > 0)
+  const loser = standings.find((s) => s.points < 0)
+
+  return (
+    <Card style={{ animationDelay: `${index * 60}ms` }}>
+      <CardHeader className="pb-2">
+        <div className="flex items-center gap-2">
+          <Swords className="h-4 w-4 text-primary shrink-0" />
+          <CardTitle className="font-display text-lg tracking-wider">Veddemål</CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {winner && loser ? (
+          <div className="flex items-center gap-3 px-2 py-1">
+            {winner.contestant.avatar_url ? (
+              <img
+                src={winner.contestant.avatar_url}
+                alt={winner.contestant.name}
+                className="w-6 h-6 rounded-full object-cover border border-border shrink-0"
+              />
+            ) : (
+              <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                <User className="h-3 w-3 text-muted-foreground" />
+              </div>
+            )}
+            <span className="text-sm">
+              <span className="font-medium text-primary">{winner.contestant.name}</span>
+              {' vant '}
+              <span className="font-display text-primary">{activity.bet_amount}</span>
+              {' poeng fra '}
+              <span className="font-medium">{loser.contestant.name}</span>
+            </span>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground px-2">Veddemål</p>
+        )}
+      </CardContent>
+    </Card>
   )
 }

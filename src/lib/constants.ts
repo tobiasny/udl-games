@@ -10,6 +10,7 @@ export const TEAM_SIZES: Record<ActivityType, number> = {
   '4v4': 4,
   '2v2v2v2': 2,
   event: 0,
+  wager: 0,
 }
 
 // Number of teams for each activity type that actually has teams. Used by
@@ -57,6 +58,7 @@ export const VALID_FORMATS: Record<ActivityType, ActivityFormat[]> = {
   '4v4': ['team_battle'],
   '2v2v2v2': ['multi_team_battle'],
   event: ['event'],
+  wager: ['heads_up'],
 }
 
 // Types the admin can pick in the create-activity form (events are managed
@@ -78,6 +80,7 @@ export const ACTIVITY_TYPE_LABELS: Record<ActivityType, string> = {
   '4v4': '4v4',
   '2v2v2v2': '2v2v2v2',
   event: 'Event',
+  wager: 'Veddemål',
 }
 
 export const ACTIVITY_FORMAT_LABELS: Record<ActivityFormat, string> = {
@@ -87,4 +90,5 @@ export const ACTIVITY_FORMAT_LABELS: Record<ActivityFormat, string> = {
   team_battle: 'Lagkamp',
   multi_team_battle: '4-lags kamp',
   event: 'Event',
+  heads_up: 'Veddemål',
 }

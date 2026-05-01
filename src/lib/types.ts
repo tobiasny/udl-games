@@ -1,4 +1,4 @@
-export type ActivityType = 'free_for_all' | '1v1' | '2v2' | '3v3' | '4v4' | '2v2v2v2' | 'event'
+export type ActivityType = 'free_for_all' | '1v1' | '2v2' | '3v3' | '4v4' | '2v2v2v2' | 'event' | 'wager'
 export type ActivityFormat =
   | 'free_for_all'
   | 'round_robin'
@@ -6,6 +6,7 @@ export type ActivityFormat =
   | 'team_battle'
   | 'multi_team_battle'
   | 'event'
+  | 'heads_up'
 export type ActivityStatus = 'draft' | 'in_progress' | 'completed'
 export type MatchStatus = 'pending' | 'in_progress' | 'completed'
 export type BracketType = 'winners' | 'losers' | 'grand_final'
@@ -29,6 +30,7 @@ export interface Activity {
   num_rounds: number
   created_at: string
   completed_at: string | null
+  bet_amount: number | null
 }
 
 export interface ActivityContestant {

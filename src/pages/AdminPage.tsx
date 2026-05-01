@@ -1,11 +1,12 @@
 import { useSearchParams } from 'react-router-dom'
-import { Gamepad2, Sparkles, Users, Settings, Beer } from 'lucide-react'
+import { Gamepad2, Sparkles, Users, Settings, Beer, Swords } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ActivitiesPage } from './ActivitiesPage'
 import { EventsPage } from './EventsPage'
 import { ContestantsPage } from './ContestantsPage'
 import { RebusAdminPage } from './RebusAdminPage'
 import { DrinkAdminPage } from './DrinkAdminPage'
+import { WagerAdminPage } from './WagerAdminPage'
 
 const TABS = [
   { key: 'aktiviteter', label: 'Aktiviteter', icon: Gamepad2 },
@@ -13,6 +14,7 @@ const TABS = [
   { key: 'deltakere', label: 'Deltakere', icon: Users },
   { key: 'rebus', label: 'Rebus', icon: Settings },
   { key: 'drikke', label: 'Drikke', icon: Beer },
+  { key: 'veddemaal', label: 'Veddemål', icon: Swords },
 ] as const
 
 type TabKey = (typeof TABS)[number]['key']
@@ -29,7 +31,7 @@ export function AdminPage() {
   return (
     <div className="space-y-4">
       {/* Tab grid */}
-      <div className="grid grid-cols-5 gap-2">
+      <div className="grid grid-cols-6 gap-2">
         {TABS.map(({ key, label, icon: Icon }) => {
           const active = activeTab === key
           return (
@@ -58,6 +60,7 @@ export function AdminPage() {
         {activeTab === 'deltakere' && <ContestantsPage />}
         {activeTab === 'rebus' && <RebusAdminPage />}
         {activeTab === 'drikke' && <DrinkAdminPage />}
+        {activeTab === 'veddemaal' && <WagerAdminPage />}
       </div>
     </div>
   )

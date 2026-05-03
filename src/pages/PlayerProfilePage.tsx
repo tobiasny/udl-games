@@ -6,6 +6,10 @@ import { useStats } from '@/hooks/use-stats'
 import { useLeaderboard } from '@/hooks/use-leaderboard'
 import { ACTIVITY_FORMAT_LABELS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
+import { useRef, useEffect } from 'react'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
+import { useDrinks } from '@/hooks/use-drinks'
+import type { DrinkLogEntry } from '@/hooks/use-drinks'
 
 function ordinal(n: number) {
   return `${n}.`
@@ -15,6 +19,8 @@ export function PlayerProfilePage() {
   const { id } = useParams<{ id: string }>()
   const stats = useStats()
   const { entries: leaderboard } = useLeaderboard()
+  const { drinkLogs } = useDrinks()
+  const playerDrinks = drinkLogs.filter((l) => l.contestant_id === id)
 
   if (stats.loading) {
     return (
@@ -233,6 +239,11 @@ export function PlayerProfilePage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Drink chart */}
+      {playerDrinks.length > 0 && (
+        <DrinkChartSection logs={playerDrinks} />
+      )}
     </div>
   )
 }
@@ -243,5 +254,78 @@ function StatCell({ label, value }: { label: string; value: string }) {
       <div className="font-display text-xl tracking-wider">{value}</div>
       <div className="text-xs text-muted-foreground leading-tight">{label}</div>
     </div>
+  )
+}
+
+interface PlayerDrinkBucket {
+  label: string
+  drinks: number
+}
+
+function toHourKey(d: Date): string {
+  return (
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-` +
+    `${String(d.getDate()).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}`
+  )
+}
+
+function keyToLabel(key: string): string {
+  const [datePart, hourPart] = key.split('T')
+  const d = new Date(`${datePart}T${hourPart}:00:00`)
+  return d.toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' }) + ' ' + hourPart + ':00'
+}
+
+function buildPlayerHourlyData(logs: DrinkLogEntry[]): PlayerDrinkBucket[] {
+  if (logs.length === 0) return []
+  const counts: Record<string, number> = {}
+  for (const log of logs) {
+    const key = toHourKey(new Date(log.created_at))
+    counts[key] = (counts[key] ?? 0) + 1
+  }
+  const times = logs.map((l) => new Date(l.created_at).getTime())
+  const start = new Date(Math.min(...times))
+  start.setMinutes(0, 0, 0)
+  const end = new Date(Math.max(...times))
+  end.setMinutes(0, 0, 0)
+  const result: PlayerDrinkBucket[] = []
+  const cur = new Date(start)
+  while (cur <= end) {
+    const key = toHourKey(cur)
+    result.push({ label: keyToLabel(key), drinks: counts[key] ?? 0 })
+    cur.setHours(cur.getHours() + 1)
+  }
+  return result
+}
+
+function DrinkChartSection({ logs }: { logs: DrinkLogEntry[] }) {
+  const data = buildPlayerHourlyData(logs)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const width = Math.max(data.length * 44, 300)
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollLeft = scrollRef.current.scrollWidth
+    }
+  }, [data])
+
+  return (
+    <Card className="animate-fade-up" style={{ animationDelay: '240ms' }}>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base font-display tracking-wider">Drikkeprofil 🍺</CardTitle>
+      </CardHeader>
+      <CardContent className="px-2">
+        <div className="overflow-x-auto" ref={scrollRef}>
+          <div style={{ width }}>
+            <BarChart width={width} height={180} data={data}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={0} angle={-45} textAnchor="end" height={60} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
+              <Tooltip />
+              <Bar dataKey="drinks" fill="#10b981" radius={[3, 3, 0, 0]} />
+            </BarChart>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
